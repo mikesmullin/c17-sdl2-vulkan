@@ -1,0 +1,106 @@
+#define SDL_MAIN_HANDLED
+
+#include "Audio.h"
+
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_vulkan.h>
+#include <cmixer.h>
+#include <string.h>
+
+#include "Base.h"
+
+const char* ckp_Audio__ERROR_MESSAGES[] = {
+    "None\n",
+    "SDL_OpenAudioDevice() failed. %s\n",
+    "Failed to load audio file %s\n",
+    "Failed to load audio file %s. Raise MAX_AUDIO_SOURCES.\n",
+};
+
+static SDL_mutex* audio_mutex;
+
+static void _lock_handler(cm_Event* e) {
+  if (e->type == CM_EVENT_LOCK) {
+    SDL_LockMutex(audio_mutex);
+  }
+  if (e->type == CM_EVENT_UNLOCK) {
+    SDL_UnlockMutex(audio_mutex);
+  }
+}
+
+static void _audio_callback(void* udata, Uint8* stream, int size) {
+  cm_process((cm_Int16*)stream, size / 2);
+}
+
+#define MAX_AUDIO_SOURCES 25
+static u8 s_AudioSourcesSize = 0;
+static cm_Source* s_AudioSources[MAX_AUDIO_SOURCES];
+static u8 s_Device;
+
+Audio__Error_t Audio__Init() {
+  SDL_AudioSpec fmt, got;
+  cm_Source* src;
+
+  // init SDL
+  // SDL_Init(SDL_INIT_AUDIO);
+  audio_mutex = SDL_CreateMutex();
+
+  // init SDL audio
+  memset(&fmt, 0, sizeof(fmt));
+  fmt.freq = 44100;
+  fmt.format = AUDIO_S16;
+  fmt.channels = 2;
+  fmt.samples = 1024;
+  fmt.callback = _audio_callback;
+
+  s_Device = SDL_OpenAudioDevice(NULL, 0, &fmt, &got, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE);
+  if (!s_Device) {
+    RETURN_ERROR(
+        AUDIO_ERROR_SDL_OPEN_AUDIO_DEVICE_FAILED,
+        ckp_Audio__ERROR_MESSAGES,
+        SDL_GetError());
+  }
+
+  // init library
+  cm_init(got.freq);
+  cm_set_lock(_lock_handler);
+  cm_set_master_gain(0.5);
+
+  // start audio
+  SDL_PauseAudioDevice(s_Device, 0);
+
+  return AUDIO_ERROR_NONE;
+}
+
+void Audio__Shutdown() {
+  for (u8 i = 0; i < s_AudioSourcesSize; i++) {
+    cm_destroy_source(s_AudioSources[i]);
+  }
+  SDL_CloseAudioDevice(s_Device);
+}
+
+Audio__Error_t Audio__LoadAudioFile(const char* path) {
+  if (s_AudioSourcesSize >= MAX_AUDIO_SOURCES) {
+    RETURN_ERROR(AUDIO_ERROR_MAX_SOURCES, ckp_Audio__ERROR_MESSAGES, path)
+  }
+
+  cm_Source* src = cm_new_source_from_file(path);
+  if (!src) {
+    RETURN_ERROR(AUDIO_ERROR_FAILED_TO_LOAD_FILE, ckp_Audio__ERROR_MESSAGES, cm_get_error());
+  }
+
+  s_AudioSources[s_AudioSourcesSize] = src;
+  LOG_INFOF("Audio file loaded. idx: %u, path: %s\n", s_AudioSourcesSize, path);
+  s_AudioSourcesSize++;
+
+  return AUDIO_ERROR_NONE;
+}
+
+void Audio__PlayAudio(const int id, const bool loop, const double gain) {
+  if (cm_get_state(s_AudioSources[id]) == CM_STATE_PLAYING) {
+    cm_stop(s_AudioSources[id]);
+  }
+  cm_set_gain(s_AudioSources[id], gain);
+  cm_set_loop(s_AudioSources[id], loop ? 1 : 0);
+  cm_play(s_AudioSources[id]);
+  // LOG_INFOF("Playing sound: %u\n", id);
+}
