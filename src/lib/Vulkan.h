@@ -65,6 +65,7 @@ typedef struct {
   VkSurfaceCapabilitiesKHR m_SwapChain__capabilities;
   u32 m_SwapChain__images_count;
   VkImage m_SwapChain__images[VULKAN_SWAPCHAIN_IMAGES_CAP];
+  VkImageView m_SwapChain__imageViews[VULKAN_SWAPCHAIN_IMAGES_CAP];
   VkFormat m_SwapChain__imageFormat;
   VkExtent2D m_SwapChain__extent;
   u32 m_SwapChain__formats_count;
@@ -72,6 +73,9 @@ typedef struct {
   u32 m_SwapChain__presentModes_count;
   VkPresentModeKHR m_SwapChain__presentModes[VULKAN_SWAPCHAIN_PRESENT_MODES_CAP];
   Vulkan__PhysicalDeviceQueue_t m_SwapChain__queues;
+
+  // pipeline
+  VkRenderPass m_renderPass;
 } Vulkan_t;
 
 void Vulkan__InitDriver1(Vulkan_t* self);
@@ -94,5 +98,7 @@ void Vulkan__UsePhysicalDevice(Vulkan_t* self, const u8 requiredDeviceIndex);
 void Vulkan__AssertSwapChainSupported(Vulkan_t* self);
 void Vulkan__CreateLogicalDeviceAndQueues(Vulkan_t* self);
 void Vulkan__CreateSwapChain(Vulkan_t* self, VkSwapchainKHR oldSwapChain);
+void Vulkan__CreateImageViews(Vulkan_t* self);
+void Vulkan__CreateRenderPass(Vulkan_t* self);
 
 #endif

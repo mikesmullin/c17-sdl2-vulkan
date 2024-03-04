@@ -222,6 +222,9 @@ void Vulkan__UsePhysicalDevice(Vulkan_t* self, const u8 requiredDeviceIndex) {
 static const char* specialPhysicalExtension1 = "VK_KHR_portability_subset";
 
 void Vulkan__AssertSwapChainSupported(Vulkan_t* self) {
+  ASSERT(
+      self->m_requiredPhysicalDeviceExtensionsCount <=
+      VULKAN_REQUIRED_PHYSICAL_DEVICE_EXTENSIONS_CAP)
   self->m_requiredPhysicalDeviceExtensions[self->m_requiredPhysicalDeviceExtensionsCount++] =
       VK_KHR_SWAPCHAIN_EXTENSION_NAME;
 
@@ -608,7 +611,7 @@ void Vulkan__CreateSwapChain(Vulkan_t* self, VkSwapchainKHR priorSwapChain) {
       vkGetSwapchainImagesKHR(self->m_logicalDevice, self->m_swapChain, &receivedImageCount, NULL))
   ASSERT_CONTEXT(
       receivedImageCount <= VULKAN_SWAPCHAIN_IMAGES_CAP,
-      "mismatch in swap chain image count. available: %u, capacity: %u",
+      "Mismatch in swap chain image count. available: %u, capacity: %u",
       receivedImageCount,
       VULKAN_SWAPCHAIN_IMAGES_CAP)
   ASSERT_CONTEXT(
@@ -629,4 +632,90 @@ void Vulkan__CreateSwapChain(Vulkan_t* self, VkSwapchainKHR priorSwapChain) {
       extent.width,
       extent.height,
       receivedImageCount);
+}
+
+void Vulkan__CreateImageViews(Vulkan_t* self) {
+  for (u8 i = 0; i < self->m_SwapChain__images_count; i++) {
+    VkImageViewCreateInfo createInfo;
+    createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    createInfo.image = self->m_SwapChain__images[i];
+    createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    createInfo.format = self->m_SwapChain__imageFormat;
+    createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+    createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+    createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+    createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+    createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    createInfo.subresourceRange.baseMipLevel = 0;
+    createInfo.subresourceRange.levelCount = 1;
+    createInfo.subresourceRange.baseArrayLayer = 0;
+    createInfo.subresourceRange.layerCount = 1;
+
+    ASSERT(
+        VK_SUCCESS == vkCreateImageView(
+                          self->m_logicalDevice,
+                          &createInfo,
+                          NULL,
+                          &self->m_SwapChain__imageViews[i]));
+  }
+}
+
+void Vulkan__CreateRenderPass(Vulkan_t* self) {
+  VkAttachmentDescription colorAttachment;
+  {
+    VkAttachmentDescriptionFlags flags = VK_ATTACHMENT_DESCRIPTION_MAY_ALIAS_BIT;
+    colorAttachment.flags = flags;
+    colorAttachment.format = self->m_SwapChain__imageFormat;
+    // TODO: we're not doing anything with multisampling yet, so we'll stick to 1 sample.
+    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+  }
+
+  VkAttachmentReference colorAttachmentRef[1];
+  colorAttachmentRef[0].attachment = 0;
+  colorAttachmentRef[0].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+  VkSubpassDescription subpass;
+  {
+    VkSubpassDescriptionFlags flags;
+    subpass.flags = flags;
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.inputAttachmentCount = 0;
+    subpass.pInputAttachments = NULL;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = colorAttachmentRef;
+    subpass.pResolveAttachments = NULL;
+    subpass.pDepthStencilAttachment = NULL;
+    subpass.preserveAttachmentCount = 0;
+    subpass.pPreserveAttachments = NULL;
+  }
+
+  VkSubpassDependency dependency;
+  dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+  dependency.dstSubpass = 0;
+  dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  dependency.srcAccessMask = 0;
+  dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+  VkRenderPassCreateInfo renderPassInfo;
+  renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+  renderPassInfo.pNext = NULL;
+  VkRenderPassCreateFlags flags = VK_RENDER_PASS_CREATE_TRANSFORM_BIT_QCOM;
+  renderPassInfo.flags = flags;
+  renderPassInfo.attachmentCount = 1;
+  renderPassInfo.pAttachments = &colorAttachment;
+  renderPassInfo.subpassCount = 1;
+  renderPassInfo.pSubpasses = &subpass;
+  renderPassInfo.dependencyCount = 1;
+  renderPassInfo.pDependencies = &dependency;
+
+  ASSERT(
+      VK_SUCCESS ==
+      vkCreateRenderPass(self->m_logicalDevice, &renderPassInfo, NULL, &self->m_renderPass))
 }

@@ -66,6 +66,8 @@ int main() {
   Vulkan__AssertSwapChainSupported(&s_Vulkan);
   Vulkan__CreateLogicalDeviceAndQueues(&s_Vulkan);
   Vulkan__CreateSwapChain(&s_Vulkan, NULL);
+  Vulkan__CreateImageViews(&s_Vulkan);
+  Vulkan__CreateRenderPass(&s_Vulkan);
 
   // main loop
   Window__RenderLoop(&s_Window, PHYSICS_FPS, RENDER_FPS, &physicsCallback, &renderCallback);
