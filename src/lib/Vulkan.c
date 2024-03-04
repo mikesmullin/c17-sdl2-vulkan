@@ -14,13 +14,13 @@ const char* ckp_Vulkan__ERROR_MESSAGES[] = {
     "vkCreateInstance() failed.\n",
     "vkEnumerateInstanceLayerProperties() failed to count. RequiredLayerCount: %u\n",
     "vkEnumerateInstanceLayerProperties() count was zero. RequiredLayerCount: %u\n",
-    "vkEnumerateInstanceLayerProperties() failed to read. RequiredLayerCount: %u, "
-    "SupportedLayerCount: %u\n",
+    ("vkEnumerateInstanceLayerProperties() failed to read. RequiredLayerCount: %u\n "
+     "SupportedLayerCount: %u\n"),
     "vkEnumerateInstanceLayerProperties() missing required layers.\n",
     "vkEnumerateInstanceExtensionProperties() failed to count. RequiredLayerCount: %u\n",
     "vkEnumerateInstanceExtensionProperties() count was zero. RequiredLayerCount: %u\n",
-    "vkEnumerateInstanceExtensionProperties() failed to read. RequiredLayerCount: %u, "
-    "SupportedLayerCount: %u\n",
+    ("vkEnumerateInstanceExtensionProperties() failed to read. RequiredLayerCount: %u, "
+     "SupportedLayerCount: %u\n"),
     "vkEnumerateInstanceExtensionProperties() missing required extensions.\n",
     "vkEnumeratePhysicalDevices() failed to count.\n",
     "vkEnumeratePhysicalDevices() count was zero.\n",
