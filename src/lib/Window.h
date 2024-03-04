@@ -15,6 +15,7 @@ typedef enum {
   WINDOW_ERROR_CREATE_WINDOW_FAILED = 1,
   WINDOW_ERROR_GET_INSTANCE_EXTENSIONS_FAILED_COUNT = 2,
   WINDOW_ERROR_GET_INSTANCE_EXTENSIONS_FAILED_WRITE = 3,
+  WINDOW_ERROR_BIND_FAILED = 4,
 } Window__Error_t;
 
 extern const char* ckp_Window__ERROR_MESSAGES[];
@@ -23,12 +24,12 @@ typedef struct {
   bool quit;
   SDL_Window* window;
   char* title;
-  u8 width;
-  u8 height;
+  u16 width;
+  u16 height;
   Vulkan_t* vulkan;
 } Window_t;
 
-void Window__New(Window_t* self, char* title, u8 width, u8 height, Vulkan_t* vulkan);
+void Window__New(Window_t* self, char* title, u16 width, u16 height, Vulkan_t* vulkan);
 Window__Error_t Window__Begin(Window_t* self);
 void Window__Bind(Window_t* self);
 void Window__KeepAspectRatio(Window_t* self);

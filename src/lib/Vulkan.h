@@ -4,6 +4,8 @@
 #define VK_NO_PROTOTYPES
 #include <volk.h>
 
+#include "Base.h"
+
 #define DEBUG_VULKAN
 
 typedef enum {
@@ -18,6 +20,10 @@ typedef enum {
   VULKAN_ERROR_VK_EIEP_COUNT_ZERO = 8,
   VULKAN_ERROR_VK_EIEP_READ_FAILED = 9,
   VULKAN_ERROR_VK_EIEP_MISSING_REQUIRED = 10,
+  VULKAN_ERROR_VK_EPD_COUNT_FAILED = 11,
+  VULKAN_ERROR_VK_EPD_COUNT_ZERO = 12,
+  VULKAN_ERROR_VK_EPD_READ_FAILED = 13,
+  VULKAN_ERROR_INVALID_DEVICE_IDX = 14,
 } Vulkan__Error_t;
 
 extern const char* ckp_Vulkan__ERROR_MESSAGES[];
@@ -30,16 +36,15 @@ typedef struct {
   const char* m_requiredDriverExtensions[VULKAN_REQUIRED_DRIVER_EXTENSIONS_CAP];
   unsigned int m_requiredValidationLayerCount;
   const char* m_requiredValidationLayers[VULKAN_REQUIRED_VALIDATION_LAYERS_CAP];
-  VkInstance* m_instance;
+  VkInstance m_instance;
+  VkPhysicalDevice m_physicalDevice;
+  VkSurfaceKHR m_surface;
 } Vulkan_t;
 
-Vulkan__Error_t Vulkan__InitDriver(Vulkan_t* self);
+Vulkan__Error_t Vulkan__InitDriver1(Vulkan_t* self);
 
 Vulkan__Error_t Vulkan__AssertDriverValidationLayersSupported(Vulkan_t* self);
 Vulkan__Error_t Vulkan__AssertDriverExtensionsSupported(Vulkan_t* self);
-
-// void Vulkan__RequireValidationLayer(const char* layerName);
-// void Vulkan__RequireDriverExtension(const char* layerName);
 
 Vulkan__Error_t Vulkan__CreateInstance(
     Vulkan_t* self,
@@ -48,5 +53,9 @@ Vulkan__Error_t Vulkan__CreateInstance(
     const unsigned int major,
     const unsigned int minor,
     const unsigned int hotfix);
+
+void Vulkan__InitDriver2(Vulkan_t* self);
+
+void Vulkan__UsePhysicalDevice(Vulkan_t* self, const u8 requiredDeviceIndex);
 
 #endif

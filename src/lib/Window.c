@@ -10,9 +10,10 @@ const char* ckp_Window__ERROR_MESSAGES[] = {
     "SDL_CreateWindow() failed. %s\n",
     "SDL_Vulkan_GetInstanceExtensions() failed to count. %s\n",
     "SDL_Vulkan_GetInstanceExtensions() failed to write. %s\n",
+    "SDL_Vulkan_CreateSurface() failed to bind Window Surface to Vulkan. %s\n",
 };
 
-void Window__New(Window_t* self, char* title, u8 width, u8 height, Vulkan_t* vulkan) {
+void Window__New(Window_t* self, char* title, u16 width, u16 height, Vulkan_t* vulkan) {
   self->quit = false;
   self->window = NULL;
   self->width = width;
@@ -33,7 +34,7 @@ Window__Error_t Window__Begin(Window_t* self) {
       NULL != self->window,
       WINDOW_ERROR_CREATE_WINDOW_FAILED,
       ckp_Window__ERROR_MESSAGES,
-      SDL_GetError());
+      SDL_GetError())
 
   // list required extensions, according to SDL window manager
   ASSERT_ERROR(
@@ -43,7 +44,7 @@ Window__Error_t Window__Begin(Window_t* self) {
                       NULL),
       WINDOW_ERROR_GET_INSTANCE_EXTENSIONS_FAILED_COUNT,
       ckp_Window__ERROR_MESSAGES,
-      SDL_GetError());
+      SDL_GetError())
 
   ASSERT_ERROR(
       SDL_TRUE == SDL_Vulkan_GetInstanceExtensions(
@@ -53,12 +54,19 @@ Window__Error_t Window__Begin(Window_t* self) {
                       self->vulkan->m_requiredDriverExtensions),
       WINDOW_ERROR_GET_INSTANCE_EXTENSIONS_FAILED_WRITE,
       ckp_Window__ERROR_MESSAGES,
-      SDL_GetError());
+      SDL_GetError())
 
   return WINDOW_ERROR_NONE;
 }
 
 void Window__Bind(Window_t* self) {
+  // ask SDL to bind our Vulkan surface to the window surface
+  SDL_Vulkan_CreateSurface(self->window, self->vulkan->m_instance, &self->vulkan->m_surface);
+  ASSERT_ERROR(
+      self->vulkan->m_surface,
+      WINDOW_ERROR_BIND_FAILED,
+      ckp_Window__ERROR_MESSAGES,
+      SDL_GetError())
 }
 
 void Window__KeepAspectRatio(Window_t* self) {

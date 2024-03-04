@@ -22,17 +22,23 @@ const char* ckp_Vulkan__ERROR_MESSAGES[] = {
     "vkEnumerateInstanceExtensionProperties() failed to read. RequiredLayerCount: %u, "
     "SupportedLayerCount: %u\n",
     "vkEnumerateInstanceExtensionProperties() missing required extensions.\n",
+    "vkEnumeratePhysicalDevices() failed to count.\n",
+    "vkEnumeratePhysicalDevices() count was zero.\n",
+    "vkEnumeratePhysicalDevices() failed to read. deviceCount: %u\n",
+    "Invalid physical device. index: %d\n",
 };
 
-Vulkan__Error_t Vulkan__InitDriver(Vulkan_t* self) {
+Vulkan__Error_t Vulkan__InitDriver1(Vulkan_t* self) {
   self->m_requiredDriverExtensionCount = 0;
   self->m_requiredValidationLayerCount = 0;
-  self->m_instance = NULL;
+  self->m_physicalDevice = VK_NULL_HANDLE;
 
-  VkResult r = volkInitialize();
-  if (VK_SUCCESS != r) {
-    return VULKAN_ERROR_VOLK_INITIALIZE_FAILED;
-  }
+  ASSERT_ERROR(
+      VK_SUCCESS == volkInitialize(),
+      VULKAN_ERROR_VOLK_INITIALIZE_FAILED,
+      ckp_Vulkan__ERROR_MESSAGES,
+      NULL)
+
   return VULKAN_ERROR_NONE;
 }
 
@@ -51,13 +57,13 @@ Vulkan__Error_t Vulkan__AssertDriverValidationLayersSupported(Vulkan_t* self) {
         VK_SUCCESS == vkEnumerateInstanceLayerProperties(&availableLayersCount, NULL),
         VULKAN_ERROR_VK_EILP_COUNT_FAILED,
         ckp_Vulkan__ERROR_MESSAGES,
-        self->m_requiredValidationLayerCount);
+        self->m_requiredValidationLayerCount)
 
     ASSERT_ERROR(
         availableLayersCount > 0,
         VULKAN_ERROR_VK_EILP_COUNT_ZERO,
         ckp_Vulkan__ERROR_MESSAGES,
-        self->m_requiredValidationLayerCount);
+        self->m_requiredValidationLayerCount)
 
     VkLayerProperties availableLayers[availableLayersCount];
     ASSERT_ERROR(
@@ -65,7 +71,7 @@ Vulkan__Error_t Vulkan__AssertDriverValidationLayersSupported(Vulkan_t* self) {
         VULKAN_ERROR_VK_EILP_READ_FAILED,
         ckp_Vulkan__ERROR_MESSAGES,
         self->m_requiredValidationLayerCount,
-        availableLayersCount);
+        availableLayersCount)
 
     // print list of validation layers to console
     bool found;
@@ -91,11 +97,7 @@ Vulkan__Error_t Vulkan__AssertDriverValidationLayersSupported(Vulkan_t* self) {
       }
       if (!found) {
         LOG_INFOF("  missing %s", self->m_requiredValidationLayers[i3]);
-        ASSERT_ERROR(
-            found,
-            VULKAN_ERROR_VK_EILP_MISSING_REQUIRED,
-            ckp_Vulkan__ERROR_MESSAGES,
-            NULL);
+        ASSERT_ERROR(found, VULKAN_ERROR_VK_EILP_MISSING_REQUIRED, ckp_Vulkan__ERROR_MESSAGES, NULL)
       }
     }
   }
@@ -110,13 +112,13 @@ Vulkan__Error_t Vulkan__AssertDriverExtensionsSupported(Vulkan_t* self) {
       VK_SUCCESS == vkEnumerateInstanceExtensionProperties(NULL, &availableExtensionCount, NULL),
       VULKAN_ERROR_VK_EIEP_COUNT_FAILED,
       ckp_Vulkan__ERROR_MESSAGES,
-      NULL);
+      NULL)
 
   ASSERT_ERROR(
       availableExtensionCount > 0,
       VULKAN_ERROR_VK_EIEP_COUNT_ZERO,
       ckp_Vulkan__ERROR_MESSAGES,
-      self->m_requiredDriverExtensionCount);
+      self->m_requiredDriverExtensionCount)
 
   VkExtensionProperties availableExtensions[availableExtensionCount];
   ASSERT_ERROR(
@@ -127,7 +129,7 @@ Vulkan__Error_t Vulkan__AssertDriverExtensionsSupported(Vulkan_t* self) {
       VULKAN_ERROR_VK_EIEP_READ_FAILED,
       ckp_Vulkan__ERROR_MESSAGES,
       self->m_requiredDriverExtensionCount,
-      availableExtensionCount);
+      availableExtensionCount)
 
   // print list of extensions to console
   bool found;
@@ -155,7 +157,7 @@ Vulkan__Error_t Vulkan__AssertDriverExtensionsSupported(Vulkan_t* self) {
     }
     if (!found) {
       LOG_INFOF("  missing %s", self->m_requiredDriverExtensions[i3]);
-      ASSERT_ERROR(found, VULKAN_ERROR_VK_EIEP_MISSING_REQUIRED, ckp_Vulkan__ERROR_MESSAGES, NULL);
+      ASSERT_ERROR(found, VULKAN_ERROR_VK_EIEP_MISSING_REQUIRED, ckp_Vulkan__ERROR_MESSAGES, NULL)
     }
   }
 
@@ -169,15 +171,6 @@ Vulkan__Error_t Vulkan__CreateInstance(
     const unsigned int major,
     const unsigned int minor,
     const unsigned int hotfix) {
-  VkApplicationInfo appInfo;
-  appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-  appInfo.pNext = NULL;
-  appInfo.pApplicationName = name;
-  appInfo.applicationVersion = VK_MAKE_VERSION(major, minor, hotfix);
-  appInfo.pEngineName = engineName;
-  appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-  appInfo.apiVersion = VK_API_VERSION_1_3;
-
   VkInstanceCreateInfo createInfo;
   createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
   createInfo.pNext = NULL;
@@ -188,22 +181,87 @@ Vulkan__Error_t Vulkan__CreateInstance(
 #else
   createInfo.flags = 0;  // default
 #endif
+  VkApplicationInfo appInfo;
   createInfo.pApplicationInfo = &appInfo;
+  {
+    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    appInfo.pNext = NULL;
+    appInfo.pApplicationName = name;
+    appInfo.applicationVersion = VK_MAKE_VERSION(major, minor, hotfix);
+    appInfo.pEngineName = engineName;
+    appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+    appInfo.apiVersion = VK_API_VERSION_1_3;
+  }
 
-#ifdef DEBUG_VULKAN
-  // the number of global layers to enable.
   createInfo.enabledLayerCount = self->m_requiredValidationLayerCount;
   createInfo.ppEnabledLayerNames = self->m_requiredValidationLayers;
-#else
-  createInfo.enabledLayerCount = 0;
-  createInfo.ppEnabledLayerNames = NULL;
-#endif
   createInfo.enabledExtensionCount = self->m_requiredDriverExtensionCount;
   createInfo.ppEnabledExtensionNames = self->m_requiredDriverExtensions;
 
-  if (vkCreateInstance(&createInfo, NULL, self->m_instance) != VK_SUCCESS) {
-    return VULKAN_ERROR_VK_CREATE_INSTANCE_FAILED;
-  }
+  ASSERT_ERROR(
+      VK_SUCCESS == vkCreateInstance(&createInfo, NULL, &self->m_instance),
+      VULKAN_ERROR_VK_CREATE_INSTANCE_FAILED,
+      ckp_Vulkan__ERROR_MESSAGES,
+      NULL)
 
   return VULKAN_ERROR_NONE;
+}
+
+void Vulkan__InitDriver2(Vulkan_t* self) {
+  volkLoadInstance(self->m_instance);
+}
+
+void Vulkan__UsePhysicalDevice(Vulkan_t* self, const u8 requiredDeviceIndex) {
+  // list GPUs
+  u32 deviceCount = 0;
+  ASSERT_ERROR(
+      VK_SUCCESS == vkEnumeratePhysicalDevices(self->m_instance, &deviceCount, NULL),
+      VULKAN_ERROR_VK_EPD_COUNT_FAILED,
+      ckp_Vulkan__ERROR_MESSAGES,
+      NULL)
+
+  ASSERT_ERROR(deviceCount > 0, VULKAN_ERROR_VK_EPD_COUNT_ZERO, ckp_Vulkan__ERROR_MESSAGES, NULL)
+
+  VkPhysicalDevice devices[deviceCount];
+  ASSERT_ERROR(
+      VK_SUCCESS == vkEnumeratePhysicalDevices(self->m_instance, &deviceCount, devices),
+      VULKAN_ERROR_VK_EPD_READ_FAILED,
+      ckp_Vulkan__ERROR_MESSAGES,
+      deviceCount)
+
+  // print all GPUs found
+  LOG_INFOF("devices:\n");
+  for (u8 i = 0; i < deviceCount; i++) {
+    VkPhysicalDeviceProperties deviceProperties;
+    vkGetPhysicalDeviceProperties(devices[i], &deviceProperties);
+
+    VkPhysicalDeviceFeatures deviceFeatures;
+    vkGetPhysicalDeviceFeatures(devices[i], &deviceFeatures);
+
+    // assumption: we only want the type of GPU device used to render video games
+    const bool discrete = deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
+    const bool geometry = deviceFeatures.geometryShader;
+
+    // list each GPU device found
+    LOG_INFOF(
+        "  %u: %s%s%s%s\n",
+        i,
+        deviceProperties.deviceName,
+        i == requiredDeviceIndex ? " (selected)" : "",
+        discrete ? " DISCRETE" : "",
+        geometry ? " GEOMETRY_SHADER" : "");
+
+    // select one GPU to be the active/default/current for all subsequent Vulkan methods;
+    // it must meet certain minimum requirements
+    if (i == requiredDeviceIndex /*&& discrete*/ /*&& geometry*/) {
+      self->m_physicalDevice = devices[i];
+      return;
+    }
+  }
+
+  ASSERT_ERROR(
+      false,
+      VULKAN_ERROR_INVALID_DEVICE_IDX,
+      ckp_Vulkan__ERROR_MESSAGES,
+      requiredDeviceIndex)
 }

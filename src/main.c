@@ -8,7 +8,8 @@
 #include "lib/Vulkan.h"
 #include "lib/Window.h"
 
-static char* WINDOW_TITLE = "main";
+static char* WINDOW_TITLE = "Survival";
+static char* ENGINE_NAME = "MS2024";
 static u16 WINDOW_WIDTH = 800;
 static u16 WINDOW_HEIGHT = 800;
 
@@ -21,7 +22,7 @@ int main() {
   // initialize random seed using current time
   srand(time(NULL));
 
-  Vulkan__InitDriver(&s_Vulkan);
+  Vulkan__InitDriver1(&s_Vulkan);
 
   SDL__EnableAudio();
   SDL__EnableGamepad();
@@ -49,8 +50,14 @@ int main() {
 #endif
   Vulkan__AssertDriverExtensionsSupported(&s_Vulkan);
 
-  // Vulkan__Error_t e2 = Vulkan__Init1();
-  // ASSERT_ERROR(e2 == 0, e2, ckp_Vulkan__ERROR_MESSAGES, NULL)
+  Vulkan__CreateInstance(&s_Vulkan, WINDOW_TITLE, ENGINE_NAME, 1, 0, 0);
+  Vulkan__InitDriver2(&s_Vulkan);
+
+  Vulkan__UsePhysicalDevice(&s_Vulkan, 0);
+  Window__Bind(&s_Window);
+
+  // auto b = w.GetDrawableAreaExtentBounds();
+  // w.KeepAspectRatio(b.width, b.height);
 
   bool quit = false;
   SDL_Event e;
