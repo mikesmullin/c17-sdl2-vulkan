@@ -11,15 +11,15 @@
     fprintf(stderr, ("Assertion failed: " #cond "\n  at %s:%u\n"), __FILE__, __LINE__); \
     abort();                                                                            \
   }
-#define ASSERT_CONTEXT(cond, ctx, ...)                                 \
-  if (!(cond)) {                                                       \
-    fprintf(                                                           \
-        stderr,                                                        \
-        ("Assertion failed: " #cond "\n  at %s:%u\n  Context: " #ctx), \
-        __FILE__,                                                      \
-        __LINE__,                                                      \
-        __VA_ARGS__);                                                  \
-    abort();                                                           \
+#define ASSERT_CONTEXT(cond, ctx, ...)                                     \
+  if (!(cond)) {                                                           \
+    fprintf(                                                               \
+        stderr,                                                            \
+        ("Assertion failed: " #cond "\n  at %s:%u\n  Context: " ctx "\n"), \
+        __FILE__,                                                          \
+        __LINE__,                                                          \
+        __VA_ARGS__);                                                      \
+    abort();                                                               \
   }
 
 #define LOG_INFOF(s, ...) printf(s "\n", __VA_ARGS__);

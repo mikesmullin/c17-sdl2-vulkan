@@ -17,6 +17,16 @@
 #define VULKAN_SWAPCHAIN_PRESENT_MODES_CAP 10
 
 typedef struct {
+  bool same;
+  bool graphics_found;
+  u32 graphics__index;
+  VkQueue graphics__queue;
+  bool present_found;
+  u32 present__index;
+  VkQueue present__queue;
+} Vulkan__PhysicalDeviceQueue_t;
+
+typedef struct {
   unsigned int m_requiredDriverExtensionsCount;
   const char* m_requiredDriverExtensions[VULKAN_REQUIRED_DRIVER_EXTENSIONS_CAP];
   unsigned int m_requiredValidationLayersCount;
@@ -27,6 +37,7 @@ typedef struct {
   VkInstance m_instance;
   VkPhysicalDevice m_physicalDevice;
   VkSurfaceKHR m_surface;
+  VkDevice m_logicalDevice;
 
   f32 m_aspectRatio;
   // window size may differ (ie. viewport may have fixed aspect
@@ -49,6 +60,7 @@ typedef struct {
   VkSurfaceCapabilitiesKHR m_SwapChain__capabilities;
   VkSurfaceFormatKHR m_SwapChain__formats[VULKAN_SWAPCHAIN_FORMATS_CAP];
   VkPresentModeKHR m_SwapChain__presentModes[VULKAN_SWAPCHAIN_PRESENT_MODES_CAP];
+  Vulkan__PhysicalDeviceQueue_t m_SwapChain__queues;
 } Vulkan_t;
 
 void Vulkan__InitDriver1(Vulkan_t* self);

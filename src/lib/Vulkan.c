@@ -27,6 +27,14 @@ void Vulkan__InitDriver1(Vulkan_t* self) {
   self->m_minimized = false;
   self->m_maximized = false;
 
+  self->m_SwapChain__queues.same = false;
+  self->m_SwapChain__queues.graphics_found = false;
+  self->m_SwapChain__queues.graphics__index = 0;
+  self->m_SwapChain__queues.graphics__queue = NULL;
+  self->m_SwapChain__queues.present_found = false;
+  self->m_SwapChain__queues.present__index = 0;
+  self->m_SwapChain__queues.present__queue = NULL;
+
   ASSERT(VK_SUCCESS == volkInitialize())
 }
 
@@ -311,204 +319,210 @@ void Vulkan__CreateLogicalDeviceAndQueues(Vulkan_t* self) {
   ASSERT(VK_NULL_HANDLE != self->m_physicalDevice)
 
   // enumerate the queue families on current physical device
-  // LocateQueueFamilies();
-  /*
-    {
-      ABORT_IF(!self->m_surface)
+  ASSERT(self->m_surface)
 
-      u32 queueFamilyCount = 0;
-      vkGetPhysicalDeviceQueueFamilyProperties(self->m_physicalDevice, &queueFamilyCount, NULL);
+  u32 queueFamilyCount = 0;
+  vkGetPhysicalDeviceQueueFamilyProperties(self->m_physicalDevice, &queueFamilyCount, NULL);
+  VkQueueFamilyProperties queueFamilies[queueFamilyCount];
+  vkGetPhysicalDeviceQueueFamilyProperties(
+      self->m_physicalDevice,
+      &queueFamilyCount,
+      queueFamilies);
 
-      VkQueueFamilyProperties queueFamilies[queueFamilyCount];
-      vkGetPhysicalDeviceQueueFamilyProperties(
-          self->m_physicalDevice,
-          &queueFamilyCount,
-          queueFamilies);
+  // list all queue families found on the current physical device
+  LOG_DEBUGF("device queue families:");
+  for (u8 i = 0; i < queueFamilyCount; i++) {
+    const bool graphics = queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT;
+    const bool compute = queueFamilies[i].queueFlags & VK_QUEUE_COMPUTE_BIT;
+    const bool transfer = queueFamilies[i].queueFlags & VK_QUEUE_TRANSFER_BIT;
+    const bool sparse = queueFamilies[i].queueFlags & VK_QUEUE_SPARSE_BINDING_BIT;
+    const bool protect = queueFamilies[i].queueFlags & VK_QUEUE_PROTECTED_BIT;
+    // if VK_KHR_video_decode_queue extension:
+    // const bool video_decode = queueFamilies[i].queueFlags & VK_QUEUE_VIDEO_DECODE_BIT;
+    // ifdef VK_ENABLE_BETA_EXTENSIONS:
+    // const bool video_encode = queueFamilies[i].queueFlags & VK_QUEUE_VIDEO_ENCODE_BIT;
+    const bool optical = queueFamilies[i].queueFlags & VK_QUEUE_OPTICAL_FLOW_BIT_NV;
 
-      // list all queue families found on the current physical device
-      LOG_DEBUGF("device queue families:");
-      bool same = false;
-      for (uint32_t i = 0; i < queueFamilies.size(); i++) {
-        const auto& queueFamily = queueFamilies[i];
+    // Query if presentation is supported
+    VkBool32 present = false;
+    ASSERT_CONTEXT(
+        VK_SUCCESS == vkGetPhysicalDeviceSurfaceSupportKHR(
+                          self->m_physicalDevice,
+                          i,
+                          self->m_surface,
+                          &present),
+        "queueFamilyIndex: %u",
+        i);
+    // ASSERT_CONTEXT(present, "queue not present. queueFamilyIndex: %u", i);
 
-        const bool graphics = queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT;
-        const bool compute = queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT;
-        const bool transfer = queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT;
-        const bool sparse = queueFamily.queueFlags & VK_QUEUE_SPARSE_BINDING_BIT;
-        const bool protect = queueFamily.queueFlags & VK_QUEUE_PROTECTED_BIT;
-        // if VK_KHR_video_decode_queue extension:
-        // const bool video_decode = queueFamily.queueFlags & VK_QUEUE_VIDEO_DECODE_BIT;
-        // ifdef VK_ENABLE_BETA_EXTENSIONS:
-        // const bool video_encode = queueFamily.queueFlags & VK_QUEUE_VIDEO_ENCODE_BIT;
-        const bool optical = queueFamily.queueFlags & VK_QUEUE_OPTICAL_FLOW_BIT_NV;
-
-        VkBool32 present = false;
-        // Query if presentation is supported
-        //
-    https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/vkGetPhysicalDeviceSurfaceSupportKHR.html
-        if (vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &present) !=
-            VK_SUCCESS) {
-          Logger::Debugf("vkGetPhysicalDeviceSurfaceSupportKHR() failed. queueFamilyIndex: %u", i);
-        }
-
-        // strategy: select fewest family indices where required queues are present
-        if (!same) {
-          if (graphics && present) {
-            // prioritize any queue with both
-            same = true;
-            pdqs.graphics.index = i;
-            pdqs.present.index = i;
-          } else if (graphics) {
-            pdqs.graphics.index = i;
-          } else if (present) {
-            pdqs.present.index = i;
-          }
-        }
-
-        Logger::Debugf(
-            "  %u: flags:%s%s%s%s%s%s%s",
-            i,
-            present ? " PRESENT" : "",
-            graphics ? " GRAPHICS" : "",
-            compute ? " COMPUTE" : "",
-            transfer ? " TRANSFER" : "",
-            sparse ? " SPARSE" : "",
-            protect ? " PROTECT" : "",
-            optical ? " OPTICAL" : "");
+    // strategy: select fewest family indices where required queues are present
+    if (!self->m_SwapChain__queues.same) {
+      if (graphics && present) {
+        // prioritize any queue with both
+        self->m_SwapChain__queues.same = true;
+        self->m_SwapChain__queues.graphics_found = true;
+        self->m_SwapChain__queues.present_found = true;
+        self->m_SwapChain__queues.graphics__index = i;
+        self->m_SwapChain__queues.present__index = i;
+      } else if (graphics) {
+        self->m_SwapChain__queues.same = false;
+        self->m_SwapChain__queues.graphics_found = true;
+        self->m_SwapChain__queues.graphics__index = i;
+      } else if (present) {
+        self->m_SwapChain__queues.same = false;
+        self->m_SwapChain__queues.present_found = true;
+        self->m_SwapChain__queues.present__index = i;
       }
-
-      Logger::Debugf(
-          "  selected: graphics: %u, present: %u",
-          pdqs.graphics.index,
-          pdqs.present.index);
     }
 
-    //   // for each unique queue family index,
-    //   // construct a request for pointer to its VkQueue
-    //   if (!pdqs.graphics.index.has_value()) {
-    //     throw Logger::Errorf("GRAPHICS queue not found within queue families of physical
-    device.");
-    //   }
-    //   if (!pdqs.present.index.has_value()) {
-    //     throw Logger::Errorf("PRESENT queue not found within queue families of physical
-    device.");
-    //   }
-    //   const bool same = pdqs.graphics.index.value() == pdqs.present.index.value();
-    //   std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-    //   {
-    //     // Structure specifying parameters of a newly created device queue
-    //     //
-    //
-    https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkDeviceQueueCreateInfo.html
-    //     VkDeviceQueueCreateInfo createInfo{};
+    LOG_INFOF(
+        "  %u: flags:%s%s%s%s%s%s%s",
+        i,
+        present ? " PRESENT" : "",
+        graphics ? " GRAPHICS" : "",
+        compute ? " COMPUTE" : "",
+        transfer ? " TRANSFER" : "",
+        sparse ? " SPARSE" : "",
+        protect ? " PROTECT" : "",
+        optical ? " OPTICAL" : "");
+  }
 
-    //     // the type of this structure.
-    //     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+  ASSERT_CONTEXT(
+      self->m_SwapChain__queues.graphics_found,
+      "GRAPHICS queue not found within queue families of physical device.")
 
-    //     // NULL or a pointer to a structure extending this structure.
-    //     // createInfo.pNext = NULL;
+  ASSERT_CONTEXT(
+      self->m_SwapChain__queues.present_found,
+      "PRESENT queue not found within queue families of physical device.")
 
-    //     // a bitmask indicating behavior of the queues.
-    //     // createInfo.flags = 0;
+  if (self->m_SwapChain__queues.same) {
+    LOG_INFOF(
+        "will choose queue %u because it has both GRAPHICS and PRESENT families",
+        self->m_SwapChain__queues.graphics__index)
+  } else {
+    LOG_INFOF(
+        "will choose queue %u because it has GRAPHICS family",
+        self->m_SwapChain__queues.graphics__index)
+    LOG_INFOF(
+        "will choose queue %u because it has PRESENT family",
+        self->m_SwapChain__queues.present__index)
+  }
 
-    //     // an unsigned integer indicating the index of the queue family in which to create the
-    //     queues on
-    //     // this device. This index corresponds to the index of an element of the
-    //     pQueueFamilyProperties
-    //     // array, and that was returned by vkGetPhysicalDeviceQueueFamilyProperties.
-    //     createInfo.queueFamilyIndex = pdqs.graphics.index.value();
+  // for each unique queue family index,
+  // construct a request for pointer to its VkQueue
+  const float queuePriority = 1.0f;
+  u32 queueCreateInfosCount = self->m_SwapChain__queues.same ? 1 : 2;
+  VkDeviceQueueCreateInfo queueCreateInfos[queueCreateInfosCount];
+  {
+    VkDeviceQueueCreateInfo createInfo;
+    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    createInfo.queueFamilyIndex = self->m_SwapChain__queues.graphics__index,
+    createInfo.queueCount = 1;
+    createInfo.pQueuePriorities = &queuePriority;
+    queueCreateInfos[0] = createInfo;
+  }
+  if (!self->m_SwapChain__queues.same) {
+    VkDeviceQueueCreateInfo createInfo;
+    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    createInfo.queueFamilyIndex = self->m_SwapChain__queues.present__index,
+    createInfo.queueCount = 1;
+    createInfo.pQueuePriorities = &queuePriority;
+    queueCreateInfos[2] = createInfo;
+  }
 
-    //     // an unsigned integer specifying the number of queues to create in the queue family
-    //     // indicated by queueFamilyIndex, and with the behavior specified by flags.
-    //     createInfo.queueCount = 1;
+  VkDeviceCreateInfo createInfo;
+  createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+  createInfo.pNext = NULL;
+  createInfo.flags = 0;
+  createInfo.queueCreateInfoCount = queueCreateInfosCount;
+  createInfo.pQueueCreateInfos = queueCreateInfos;
 
-    //     // a pointer to an array of queueCount normalized floating point values, specifying
-    //     priorities
-    //     // of work that will be submitted to each created queue.
-    //     const float queuePriority = 1.0f;
-    //     createInfo.pQueuePriorities = &queuePriority;
+  // per-device validation layers
+  // deprecated, because we also defined it on the VkInstance,
+  // but recommended to also keep here for backward-compatibility.
+  createInfo.enabledLayerCount = (u32)self->m_requiredValidationLayersCount;
+  createInfo.ppEnabledLayerNames = self->m_requiredValidationLayers;
 
-    //     // one request per unique queue family index
-    //     queueCreateInfos.push_back(createInfo);
-    //   }
-    //   if (!same) {
-    //     VkDeviceQueueCreateInfo createInfo{};
-    //     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    //     createInfo.queueFamilyIndex = pdqs.present.index.value();
-    //     createInfo.queueCount = 1;
-    //     const float queuePriority = 1.0f;
-    //     createInfo.pQueuePriorities = &queuePriority;
-    //     queueCreateInfos.push_back(createInfo);
-    //   }
+  createInfo.enabledExtensionCount = (u32)self->m_requiredPhysicalDeviceExtensionsCount;
+  createInfo.ppEnabledExtensionNames = self->m_requiredPhysicalDeviceExtensions;
 
-    //   // Structure describing the fine-grained features that can be supported by an
-    implementation
-    //   //
-    //
-    https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkPhysicalDeviceFeatures.html
-    //   VkPhysicalDeviceFeatures deviceFeatures{};
+  VkPhysicalDeviceFeatures deviceFeatures;
+  createInfo.pEnabledFeatures = &deviceFeatures;
+  deviceFeatures.robustBufferAccess = VK_FALSE;
+  deviceFeatures.fullDrawIndexUint32 = VK_FALSE;
+  deviceFeatures.imageCubeArray = VK_FALSE;
+  deviceFeatures.independentBlend = VK_FALSE;
+  deviceFeatures.geometryShader = VK_FALSE;
+  deviceFeatures.tessellationShader = VK_FALSE;
+  deviceFeatures.sampleRateShading = VK_FALSE;
+  deviceFeatures.dualSrcBlend = VK_FALSE;
+  deviceFeatures.logicOp = VK_FALSE;
+  deviceFeatures.multiDrawIndirect = VK_FALSE;
+  deviceFeatures.drawIndirectFirstInstance = VK_FALSE;
+  deviceFeatures.depthClamp = VK_FALSE;
+  deviceFeatures.depthBiasClamp = VK_FALSE;
+  deviceFeatures.fillModeNonSolid = VK_FALSE;
+  deviceFeatures.depthBounds = VK_FALSE;
+  deviceFeatures.wideLines = VK_FALSE;
+  deviceFeatures.largePoints = VK_FALSE;
+  deviceFeatures.alphaToOne = VK_FALSE;
+  deviceFeatures.multiViewport = VK_FALSE;
+  deviceFeatures.samplerAnisotropy = VK_TRUE;
+  deviceFeatures.textureCompressionETC2 = VK_FALSE;
+  deviceFeatures.textureCompressionASTC_LDR = VK_FALSE;
+  deviceFeatures.textureCompressionBC = VK_FALSE;
+  deviceFeatures.occlusionQueryPrecise = VK_FALSE;
+  deviceFeatures.pipelineStatisticsQuery = VK_FALSE;
+  deviceFeatures.vertexPipelineStoresAndAtomics = VK_FALSE;
+  deviceFeatures.fragmentStoresAndAtomics = VK_FALSE;
+  deviceFeatures.shaderTessellationAndGeometryPointSize = VK_FALSE;
+  deviceFeatures.shaderImageGatherExtended = VK_FALSE;
+  deviceFeatures.shaderStorageImageExtendedFormats = VK_FALSE;
+  deviceFeatures.shaderStorageImageMultisample = VK_FALSE;
+  deviceFeatures.shaderStorageImageReadWithoutFormat = VK_FALSE;
+  deviceFeatures.shaderStorageImageWriteWithoutFormat = VK_FALSE;
+  deviceFeatures.shaderUniformBufferArrayDynamicIndexing = VK_FALSE;
+  deviceFeatures.shaderSampledImageArrayDynamicIndexing = VK_FALSE;
+  deviceFeatures.shaderStorageBufferArrayDynamicIndexing = VK_FALSE;
+  deviceFeatures.shaderStorageImageArrayDynamicIndexing = VK_FALSE;
+  deviceFeatures.shaderClipDistance = VK_FALSE;
+  deviceFeatures.shaderCullDistance = VK_FALSE;
+  deviceFeatures.shaderFloat64 = VK_FALSE;
+  deviceFeatures.shaderInt64 = VK_FALSE;
+  deviceFeatures.shaderInt16 = VK_FALSE;
+  deviceFeatures.shaderResourceResidency = VK_FALSE;
+  deviceFeatures.shaderResourceMinLod = VK_FALSE;
+  deviceFeatures.sparseBinding = VK_FALSE;
+  deviceFeatures.sparseResidencyBuffer = VK_FALSE;
+  deviceFeatures.sparseResidencyImage2D = VK_FALSE;
+  deviceFeatures.sparseResidencyImage3D = VK_FALSE;
+  deviceFeatures.sparseResidency2Samples = VK_FALSE;
+  deviceFeatures.sparseResidency4Samples = VK_FALSE;
+  deviceFeatures.sparseResidency8Samples = VK_FALSE;
+  deviceFeatures.sparseResidency16Samples = VK_FALSE;
+  deviceFeatures.sparseResidencyAliased = VK_FALSE;
+  deviceFeatures.variableMultisampleRate = VK_FALSE;
+  deviceFeatures.inheritedQueries = VK_FALSE;
 
-    //   // used with texture images
-    //   deviceFeatures.samplerAnisotropy = VK_TRUE;
+  ASSERT(
+      VK_SUCCESS ==
+      vkCreateDevice(self->m_physicalDevice, &createInfo, NULL, &self->m_logicalDevice))
 
-    //   // Structure specifying parameters of a newly created [logical] device
-    //   //
-    https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkDeviceCreateInfo.html
-    //   VkDeviceCreateInfo createInfo{};
-    //   // the type of this structure.
-    //   createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+  LOG_INFOF("created logical device")
 
-    //   // NULL or a pointer to a structure extending this structure.
-    //   createInfo.pNext = NULL;
+  vkGetDeviceQueue(
+      self->m_logicalDevice,
+      self->m_SwapChain__queues.graphics__index,
+      0,
+      &self->m_SwapChain__queues.graphics__queue);
 
-    //   // reserved for future use.
-    //   createInfo.flags = static_cast<uint32_t>(0);
-
-    //   // unsigned integer size of the pQueueCreateInfos array.
-    //   createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
-
-    //   // pointer to an array of VkDeviceQueueCreateInfo structures describing the queues that are
-    //   // requested to be created along with the logical device.
-    //   createInfo.pQueueCreateInfos = queueCreateInfos.data();
-
-    // // define validation layers to be used, per-device.
-    // // deprecated, because we also defined it on the VkInstance,
-    // // but recommended to also keep here for backward-compatibility.
-    // #ifdef DEBUG_VULKAN
-    //   createInfo.enabledLayerCount = static_cast<uint32_t>(requiredValidationLayers.size());
-    //   createInfo.ppEnabledLayerNames = requiredValidationLayers.data();
-    // #else
-    //   createInfo.enabledLayerCount = 0;
-    // #endif
-
-    //   // number of device extensions to enable.
-    //   createInfo.enabledExtensionCount =
-    //   static_cast<uint32_t>(requiredPhysicalDeviceExtensions.size());
-
-    //   // pointer to an array of enabledExtensionCount null-terminated UTF-8 strings containing
-    the
-    //   names
-    //   // of extensions to enable for the created device.
-    //   createInfo.ppEnabledExtensionNames = requiredPhysicalDeviceExtensions.data();
-
-    //   // NULL or a pointer to a VkPhysicalDeviceFeatures structure containing boolean indicators
-    of
-    //   all
-    //   // the features to be enabled.
-    //   createInfo.pEnabledFeatures = &deviceFeatures;
-
-    //   // Create a new [logical] device instance
-    //   // https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/vkCreateDevice.html
-    //   if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &logicalDevice) != VK_SUCCESS) {
-    //     throw Logger::Errorf("vkCreateDevice() failed.");
-    //   }
-
-    //   // https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/vkGetDeviceQueue.html
-    //   vkGetDeviceQueue(logicalDevice, pdqs.graphics.index.value(), 0, &pdqs.graphics.queue);
-    //   if (!same) {
-    //     vkGetDeviceQueue(logicalDevice, pdqs.present.index.value(), 0, &pdqs.present.queue);
-    //   }
-    */
+  if (!self->m_SwapChain__queues.same) {
+    vkGetDeviceQueue(
+        self->m_logicalDevice,
+        self->m_SwapChain__queues.present__index,
+        0,
+        &self->m_SwapChain__queues.present__queue);
+  }
 }
 
 void Vulkan__CreateSwapChain(Vulkan_t* self) {
