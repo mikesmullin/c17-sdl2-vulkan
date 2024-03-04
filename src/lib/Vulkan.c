@@ -17,20 +17,34 @@ const char* ckp_Vulkan__ERROR_MESSAGES[] = {
     ("vkEnumerateInstanceLayerProperties() failed to read. RequiredLayerCount: %u\n "
      "SupportedLayerCount: %u\n"),
     "vkEnumerateInstanceLayerProperties() missing required layers.\n",
-    "vkEnumerateInstanceExtensionProperties() failed to count. RequiredLayerCount: %u\n",
-    "vkEnumerateInstanceExtensionProperties() count was zero. RequiredLayerCount: %u\n",
-    ("vkEnumerateInstanceExtensionProperties() failed to read. RequiredLayerCount: %u, "
-     "SupportedLayerCount: %u\n"),
+    "vkEnumerateInstanceExtensionProperties() failed to count. RequiredExtensionCount: %u\n",
+    "vkEnumerateInstanceExtensionProperties() count was zero. RequiredExtensionCount: %u\n",
+    ("vkEnumerateInstanceExtensionProperties() failed to read. RequiredExtensionCount: %u, "
+     "SupportedExtensionCount: %u\n"),
     "vkEnumerateInstanceExtensionProperties() missing required extensions.\n",
     "vkEnumeratePhysicalDevices() failed to count.\n",
     "vkEnumeratePhysicalDevices() count was zero.\n",
     "vkEnumeratePhysicalDevices() failed to read. deviceCount: %u\n",
     "Invalid physical device. index: %d\n",
+    "vkEnumerateDeviceExtensionProperties() failed to count. RequiredPhysicalExtensionCount: %u\n",
+    "vkEnumerateDeviceExtensionProperties() count was zero. RequiredPhysicalExtensionCount: %u\n",
+    ("vkEnumerateDeviceExtensionProperties() failed to read. RequiredPhysicalExtensionCount: %u, "
+     "SupportedPhysicalExtensionCount: %u\n"),
+    "vkEnumerateDeviceExtensionProperties() missing required extensions.\n",
+    "vkGetPhysicalDeviceSurfaceCapabilitiesKHR() failed.\n",
+    "vkGetPhysicalDeviceSurfaceFormatsKHR() failed to count.\n",
+    "vkGetPhysicalDeviceSurfaceFormatsKHR() count was zero.\n",
+    ("vkGetPhysicalDeviceSurfaceFormatsKHR() failed to read. formatCount: %u\n"),
+    "vkGetPhysicalDeviceSurfacePresentModesKHR() failed to count.\n",
+    "vkGetPhysicalDeviceSurfacePresentModesKHR() count was zero.\n",
+    "vkGetPhysicalDeviceSurfacePresentModesKHR() failed to read. presentModeCount: %u\n",
+
 };
 
 Vulkan__Error_t Vulkan__InitDriver1(Vulkan_t* self) {
   self->m_requiredDriverExtensionCount = 0;
   self->m_requiredValidationLayerCount = 0;
+  self->m_requiredPhysicalDeviceExtensionCount = 0;
   self->m_physicalDevice = VK_NULL_HANDLE;
 
   self->m_aspectRatio = ASPECT_SQUARE;
@@ -71,13 +85,12 @@ Vulkan__Error_t Vulkan__AssertDriverValidationLayersSupported(Vulkan_t* self) {
         VULKAN_ERROR_VK_EILP_COUNT_FAILED,
         ckp_Vulkan__ERROR_MESSAGES,
         self->m_requiredValidationLayerCount)
-
     ASSERT_ERROR(
         availableLayersCount > 0,
         VULKAN_ERROR_VK_EILP_COUNT_ZERO,
         ckp_Vulkan__ERROR_MESSAGES,
         self->m_requiredValidationLayerCount)
-
+    LOG_INFOF("Driver Validation Layer Count: %u\n", availableLayersCount);
     VkLayerProperties availableLayers[availableLayersCount];
     ASSERT_ERROR(
         VK_SUCCESS == vkEnumerateInstanceLayerProperties(&availableLayersCount, availableLayers),
@@ -126,13 +139,12 @@ Vulkan__Error_t Vulkan__AssertDriverExtensionsSupported(Vulkan_t* self) {
       VULKAN_ERROR_VK_EIEP_COUNT_FAILED,
       ckp_Vulkan__ERROR_MESSAGES,
       NULL)
-
   ASSERT_ERROR(
       availableExtensionCount > 0,
       VULKAN_ERROR_VK_EIEP_COUNT_ZERO,
       ckp_Vulkan__ERROR_MESSAGES,
       self->m_requiredDriverExtensionCount)
-
+  LOG_INFOF("Driver Extension Count: %u\n", availableExtensionCount);
   VkExtensionProperties availableExtensions[availableExtensionCount];
   ASSERT_ERROR(
       VK_SUCCESS == vkEnumerateInstanceExtensionProperties(
@@ -277,4 +289,143 @@ void Vulkan__UsePhysicalDevice(Vulkan_t* self, const u8 requiredDeviceIndex) {
       VULKAN_ERROR_INVALID_DEVICE_IDX,
       ckp_Vulkan__ERROR_MESSAGES,
       requiredDeviceIndex)
+}
+
+static const char* specialPhysicalExtension1 = "VK_KHR_portability_subset";
+
+void Vulkan__AssertSwapChainSupported(Vulkan_t* self) {
+  self->m_requiredPhysicalDeviceExtensions[self->m_requiredPhysicalDeviceExtensionCount++] =
+      VK_KHR_SWAPCHAIN_EXTENSION_NAME;
+
+  // list the extensions supported by this physical device
+  u32 availablePhysicalExtensionCount = 0;
+  ASSERT_ERROR(
+      VK_SUCCESS == vkEnumerateDeviceExtensionProperties(
+                        self->m_physicalDevice,
+                        NULL,
+                        &availablePhysicalExtensionCount,
+                        NULL),
+      VULKAN_ERROR_VK_EDEP_COUNT_FAILED,
+      ckp_Vulkan__ERROR_MESSAGES,
+      self->m_requiredPhysicalDeviceExtensionCount)
+  ASSERT_ERROR(
+      availablePhysicalExtensionCount > 0,
+      VULKAN_ERROR_VK_EDEP_COUNT_ZERO,
+      ckp_Vulkan__ERROR_MESSAGES,
+      self->m_requiredPhysicalDeviceExtensionCount)
+  LOG_INFOF("Physical Device Extension Count: %u\n", availablePhysicalExtensionCount);
+  VkExtensionProperties availablePhysicalExtensions[availablePhysicalExtensionCount];
+  ASSERT_ERROR(
+      VK_SUCCESS == vkEnumerateDeviceExtensionProperties(
+                        self->m_physicalDevice,
+                        NULL,
+                        &availablePhysicalExtensionCount,
+                        availablePhysicalExtensions),
+      VULKAN_ERROR_VK_EDEP_READ_FAILED,
+      ckp_Vulkan__ERROR_MESSAGES,
+      self->m_requiredPhysicalDeviceExtensionCount,
+      availablePhysicalExtensionCount)
+
+  // quirk: vulkan spec says if this is supported, we must request it
+  for (u8 i = 0; i < self->m_requiredPhysicalDeviceExtensionCount; i++) {
+    if (0 == strcmp(specialPhysicalExtension1, self->m_requiredPhysicalDeviceExtensions[i])) {
+      self->m_requiredPhysicalDeviceExtensions[self->m_requiredPhysicalDeviceExtensionCount++] =
+          specialPhysicalExtension1;
+    }
+  }
+
+  // print list of extensions to console
+  LOG_INFOF("required device extensions:\n")
+  // validate the required extensions are all found
+  bool found = false;
+  for (u8 i2 = 0; i2 < self->m_requiredPhysicalDeviceExtensionCount; i2++) {
+    found = false;
+    for (u8 i3 = 0; i3 < availablePhysicalExtensionCount; i3++) {
+      if (0 == strcmp(
+                   self->m_requiredPhysicalDeviceExtensions[i2],
+                   availablePhysicalExtensions[i3].extensionName)) {
+        found = true;
+        break;
+      }
+    }
+
+    LOG_INFOF(
+        "  %s%s\n",
+        self->m_requiredPhysicalDeviceExtensions[i2],
+        found ? " (required)" : " (missing)")
+
+    ASSERT_ERROR(
+        found,
+        VULKAN_ERROR_VK_EDEP_MISSING_REQUIRED,
+        ckp_Vulkan__ERROR_MESSAGES,
+        self->m_requiredPhysicalDeviceExtensionCount,
+        availablePhysicalExtensionCount)
+  }
+
+  ASSERT_ERROR(
+      VK_SUCCESS == vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+                        self->m_physicalDevice,
+                        self->m_surface,
+                        &self->m_SwapChain__capabilities),
+      VULKAN_ERROR_VK_GPDSC_FAILED,
+      ckp_Vulkan__ERROR_MESSAGES,
+      NULL)
+
+  u32 availableFormatCount = 0;
+  ASSERT_ERROR(
+      VK_SUCCESS == vkGetPhysicalDeviceSurfaceFormatsKHR(
+                        self->m_physicalDevice,
+                        self->m_surface,
+                        &availableFormatCount,
+                        NULL),
+      VULKAN_ERROR_VK_GPDSF_COUNT_FAILED,
+      ckp_Vulkan__ERROR_MESSAGES,
+      NULL)
+  ASSERT_ERROR(
+      availableFormatCount > 0,
+      VULKAN_ERROR_VK_GPDSF_COUNT_ZERO,
+      ckp_Vulkan__ERROR_MESSAGES,
+      NULL)
+  LOG_INFOF("Physical Device Surface Format Count: %u\n", availableFormatCount);
+  ASSERT_ERROR(
+      VK_SUCCESS == vkGetPhysicalDeviceSurfaceFormatsKHR(
+                        self->m_physicalDevice,
+                        self->m_surface,
+                        &availableFormatCount,
+                        self->m_SwapChain__formats),
+      VULKAN_ERROR_VK_GPDSF_READ_FAILED,
+      ckp_Vulkan__ERROR_MESSAGES,
+      availableFormatCount)
+
+  u32 availablePresentModeCount = 0;
+  ASSERT_ERROR(
+      VK_SUCCESS == vkGetPhysicalDeviceSurfacePresentModesKHR(
+                        self->m_physicalDevice,
+                        self->m_surface,
+                        &availablePresentModeCount,
+                        NULL),
+      VULKAN_ERROR_VK_GPDSPM_COUNT_FAILED,
+      ckp_Vulkan__ERROR_MESSAGES,
+      NULL)
+  ASSERT_ERROR(
+      availablePresentModeCount > 0,
+      VULKAN_ERROR_VK_GPDSPM_COUNT_ZERO,
+      ckp_Vulkan__ERROR_MESSAGES,
+      NULL)
+  LOG_INFOF("Physical Device Surface Present Mode Count: %u\n", availablePresentModeCount);
+  ASSERT_ERROR(
+      VK_SUCCESS == vkGetPhysicalDeviceSurfacePresentModesKHR(
+                        self->m_physicalDevice,
+                        self->m_surface,
+                        &availablePresentModeCount,
+                        self->m_SwapChain__presentModes),
+      VULKAN_ERROR_VK_GPDSPM_READ_FAILED,
+      ckp_Vulkan__ERROR_MESSAGES,
+      availablePresentModeCount)
+}
+
+void Vulkan__UseLogicalDevice(Vulkan_t* self) {
+}
+
+void Vulkan__CreateSwapChain(Vulkan_t* self) {
 }

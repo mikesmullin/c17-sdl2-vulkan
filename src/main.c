@@ -67,12 +67,19 @@ int main() {
   Window__GetDrawableAreaExtentBounds(&s_Window, &area);
   Window__KeepAspectRatio(&s_Window, area.width, area.height);
 
+  // establish vulkan scene
+  Vulkan__AssertSwapChainSupported(&s_Vulkan);
+  Vulkan__UseLogicalDevice(&s_Vulkan);
+  Vulkan__CreateSwapChain(&s_Vulkan);
+
+  // main loop
   Window__RenderLoop(&s_Window, PHYSICS_FPS, RENDER_FPS, &physicsCallback, &renderCallback);
 
+  // cleanup
+  printf("end main.\n");
   Audio__Shutdown();
   Window__Shutdown(&s_Window);
-
-  printf("done.\n");
+  printf("shutdown complete.\n");
   return 0;
 }
 

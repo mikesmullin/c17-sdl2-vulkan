@@ -24,6 +24,17 @@ typedef enum {
   VULKAN_ERROR_VK_EPD_COUNT_ZERO = 12,
   VULKAN_ERROR_VK_EPD_READ_FAILED = 13,
   VULKAN_ERROR_INVALID_DEVICE_IDX = 14,
+  VULKAN_ERROR_VK_EDEP_COUNT_FAILED = 15,
+  VULKAN_ERROR_VK_EDEP_COUNT_ZERO = 16,
+  VULKAN_ERROR_VK_EDEP_READ_FAILED = 17,
+  VULKAN_ERROR_VK_EDEP_MISSING_REQUIRED = 18,
+  VULKAN_ERROR_VK_GPDSC_FAILED = 19,
+  VULKAN_ERROR_VK_GPDSF_COUNT_FAILED = 20,
+  VULKAN_ERROR_VK_GPDSF_COUNT_ZERO = 21,
+  VULKAN_ERROR_VK_GPDSF_READ_FAILED = 22,
+  VULKAN_ERROR_VK_GPDSPM_COUNT_FAILED = 23,
+  VULKAN_ERROR_VK_GPDSPM_COUNT_ZERO = 24,
+  VULKAN_ERROR_VK_GPDSPM_READ_FAILED = 25,
 } Vulkan__Error_t;
 
 extern const char* ckp_Vulkan__ERROR_MESSAGES[];
@@ -32,12 +43,18 @@ extern const char* ckp_Vulkan__ERROR_MESSAGES[];
 
 #define VULKAN_REQUIRED_VALIDATION_LAYERS_CAP 10
 #define VULKAN_REQUIRED_DRIVER_EXTENSIONS_CAP 10
+#define VULKAN_REQUIRED_PHYSICAL_DEVICE_EXTENSIONS_CAP 10
+#define VULKAN_SWAPCHAIN_FORMATS_CAP 10
+#define VULKAN_SWAPCHAIN_PRESENT_MODES_CAP 10
 
 typedef struct {
   unsigned int m_requiredDriverExtensionCount;
   const char* m_requiredDriverExtensions[VULKAN_REQUIRED_DRIVER_EXTENSIONS_CAP];
   unsigned int m_requiredValidationLayerCount;
   const char* m_requiredValidationLayers[VULKAN_REQUIRED_VALIDATION_LAYERS_CAP];
+  unsigned int m_requiredPhysicalDeviceExtensionCount;
+  const char* m_requiredPhysicalDeviceExtensions[VULKAN_REQUIRED_PHYSICAL_DEVICE_EXTENSIONS_CAP];
+
   VkInstance m_instance;
   VkPhysicalDevice m_physicalDevice;
   VkSurfaceKHR m_surface;
@@ -59,6 +76,10 @@ typedef struct {
   bool m_framebufferResized;
   bool m_minimized;
   bool m_maximized;
+
+  VkSurfaceCapabilitiesKHR m_SwapChain__capabilities;
+  VkSurfaceFormatKHR m_SwapChain__formats[VULKAN_SWAPCHAIN_FORMATS_CAP];
+  VkPresentModeKHR m_SwapChain__presentModes[VULKAN_SWAPCHAIN_PRESENT_MODES_CAP];
 } Vulkan_t;
 
 Vulkan__Error_t Vulkan__InitDriver1(Vulkan_t* self);
@@ -77,5 +98,9 @@ Vulkan__Error_t Vulkan__CreateInstance(
 void Vulkan__InitDriver2(Vulkan_t* self);
 
 void Vulkan__UsePhysicalDevice(Vulkan_t* self, const u8 requiredDeviceIndex);
+
+void Vulkan__AssertSwapChainSupported(Vulkan_t* self);
+void Vulkan__UseLogicalDevice(Vulkan_t* self);
+void Vulkan__CreateSwapChain(Vulkan_t* self);
 
 #endif
