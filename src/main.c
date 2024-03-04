@@ -31,19 +31,13 @@ int main() {
 
   Vulkan__InitDriver1(&s_Vulkan);
 
-  SDL__EnableAudio();
-  SDL__EnableGamepad();
-  SDL__EnableVideo();
   Window__New(&s_Window, WINDOW_TITLE, WINDOW_WIDTH, WINDOW_HEIGHT, &s_Vulkan);
   SDL__Init();
   Audio__Init();
 
   Gamepad_t gamePad1;
   Gamepad__New(&gamePad1, 0);
-  LOG_INFOF(
-      "Controller Id: %d, Name: %s\n",
-      gamePad1.m_index,
-      Gamepad__GetControllerName(&gamePad1));
+  LOG_INFOF("Controller Id: %d, Name: %s", gamePad1.m_index, Gamepad__GetControllerName(&gamePad1));
   Gamepad__Open(&gamePad1);
 
   Window__Begin(&s_Window);
@@ -51,8 +45,9 @@ int main() {
   Vulkan__AssertDriverValidationLayersSupported(&s_Vulkan);
 
 #if OS_MAC == 1
+  ASSERT(s_Vulkan.m_requiredDriverExtensionsCount < VULKAN_REQUIRED_DRIVER_EXTENSIONS_CAP)
   // enable MoltenVK support for MacOS cross-platform support
-  s_Vulkan.m_requiredDriverExtensions[s_Vulkan.m_requiredDriverExtensionCount++] =
+  s_Vulkan.m_requiredDriverExtensions[s_Vulkan.m_requiredDriverExtensionsCount++] =
       VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME;
 #endif
   Vulkan__AssertDriverExtensionsSupported(&s_Vulkan);
@@ -69,7 +64,7 @@ int main() {
 
   // establish vulkan scene
   Vulkan__AssertSwapChainSupported(&s_Vulkan);
-  Vulkan__UseLogicalDevice(&s_Vulkan);
+  Vulkan__CreateLogicalDeviceAndQueues(&s_Vulkan);
   Vulkan__CreateSwapChain(&s_Vulkan);
 
   // main loop

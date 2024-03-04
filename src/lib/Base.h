@@ -6,22 +6,24 @@
 #include <stdio.h>
 #define DEBUG_TRACE printf("*** TRACE %s:%u\n", __FILE__, __LINE__);
 
-#define ASSERT(c) \
-  if (!(c)) {     \
-    abort();      \
+#define ASSERT(cond)                                                                    \
+  if (!(cond)) {                                                                        \
+    fprintf(stderr, ("Assertion failed: " #cond "\n  at %s:%u\n"), __FILE__, __LINE__); \
+    abort();                                                                            \
   }
-#define ASSERT_ERROR(cond, code, errs, ...)   \
-  if (!(cond)) {                              \
-    fprintf(stderr, errs[code], __VA_ARGS__); \
-    abort();                                  \
+#define ASSERT_CONTEXT(cond, ctx, ...)                                 \
+  if (!(cond)) {                                                       \
+    fprintf(                                                           \
+        stderr,                                                        \
+        ("Assertion failed: " #cond "\n  at %s:%u\n  Context: " #ctx), \
+        __FILE__,                                                      \
+        __LINE__,                                                      \
+        __VA_ARGS__);                                                  \
+    abort();                                                           \
   }
 
-#define RETURN_ERROR(code, errs, ...)       \
-  fprintf(stderr, errs[code], __VA_ARGS__); \
-  return code;
-
-#define LOG_INFOF(s, ...) printf(s, __VA_ARGS__);
-#define LOG_DEBUGF(s, ...) printf(s, __VA_ARGS__);
+#define LOG_INFOF(s, ...) printf(s "\n", __VA_ARGS__);
+#define LOG_DEBUGF(s, ...) printf(s "\n", __VA_ARGS__);
 
 // Scalars
 

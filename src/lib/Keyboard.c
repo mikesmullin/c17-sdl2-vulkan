@@ -34,7 +34,7 @@ void Keyboard__OnInput(const SDL_Event* event) {
       // LOG_DEBUGF(
       //     "SDL_KEY{UP,DOWN} state "
       //     "code %u location %u pressed %u alt %u "
-      //     "ctrl %u shift %u meta %u\n",
+      //     "ctrl %u shift %u meta %u",
       //     g_Keyboard__state.code,
       //     g_Keyboard__state.location,
       //     g_Keyboard__state.pressed,

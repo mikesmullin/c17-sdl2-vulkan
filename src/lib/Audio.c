@@ -9,13 +9,6 @@
 
 #include "Base.h"
 
-const char* ckp_Audio__ERROR_MESSAGES[] = {
-    "None\n",
-    "SDL_OpenAudioDevice() failed. %s\n",
-    "Failed to load audio file %s\n",
-    "Failed to load audio file %s. Raise MAX_AUDIO_SOURCES.\n",
-};
-
 static SDL_mutex* audio_mutex;
 
 static void _lock_handler(cm_Event* e) {
@@ -36,7 +29,7 @@ static u8 s_AudioSourcesSize = 0;
 static cm_Source* s_AudioSources[MAX_AUDIO_SOURCES];
 static u8 s_Device;
 
-Audio__Error_t Audio__Init() {
+void Audio__Init() {
   SDL_AudioSpec fmt, got;
   cm_Source* src;
 
@@ -52,13 +45,10 @@ Audio__Error_t Audio__Init() {
   fmt.samples = 1024;
   fmt.callback = _audio_callback;
 
-  s_Device = SDL_OpenAudioDevice(NULL, 0, &fmt, &got, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE);
-  if (!s_Device) {
-    RETURN_ERROR(
-        AUDIO_ERROR_SDL_OPEN_AUDIO_DEVICE_FAILED,
-        ckp_Audio__ERROR_MESSAGES,
-        SDL_GetError());
-  }
+  ASSERT_CONTEXT(
+      !!(s_Device = SDL_OpenAudioDevice(NULL, 0, &fmt, &got, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE)),
+      "SDL Error: %s",
+      SDL_GetError());
 
   // init library
   cm_init(got.freq);
@@ -67,8 +57,6 @@ Audio__Error_t Audio__Init() {
 
   // start audio
   SDL_PauseAudioDevice(s_Device, 0);
-
-  return AUDIO_ERROR_NONE;
 }
 
 void Audio__Shutdown() {
@@ -78,21 +66,18 @@ void Audio__Shutdown() {
   SDL_CloseAudioDevice(s_Device);
 }
 
-Audio__Error_t Audio__LoadAudioFile(const char* path) {
-  if (s_AudioSourcesSize >= MAX_AUDIO_SOURCES) {
-    RETURN_ERROR(AUDIO_ERROR_MAX_SOURCES, ckp_Audio__ERROR_MESSAGES, path)
-  }
+void Audio__LoadAudioFile(const char* path) {
+  ASSERT_CONTEXT(
+      s_AudioSourcesSize >= MAX_AUDIO_SOURCES,
+      "Failed to load audio file %s. Raise MAX_AUDIO_SOURCES.",
+      path)
 
   cm_Source* src = cm_new_source_from_file(path);
-  if (!src) {
-    RETURN_ERROR(AUDIO_ERROR_FAILED_TO_LOAD_FILE, ckp_Audio__ERROR_MESSAGES, cm_get_error());
-  }
+  ASSERT_CONTEXT(!src, "Failed to load audio file %s", cm_get_error())
 
   s_AudioSources[s_AudioSourcesSize] = src;
-  LOG_INFOF("Audio file loaded. idx: %u, path: %s\n", s_AudioSourcesSize, path);
+  LOG_INFOF("Audio file loaded. idx: %u, path: %s", s_AudioSourcesSize, path);
   s_AudioSourcesSize++;
-
-  return AUDIO_ERROR_NONE;
 }
 
 void Audio__PlayAudio(const int id, const bool loop, const double gain) {
@@ -102,5 +87,5 @@ void Audio__PlayAudio(const int id, const bool loop, const double gain) {
   cm_set_gain(s_AudioSources[id], gain);
   cm_set_loop(s_AudioSources[id], loop ? 1 : 0);
   cm_play(s_AudioSources[id]);
-  // LOG_INFOF("Playing sound: %u\n", id);
+  // LOG_INFOF("Playing sound: %u", id);
 }

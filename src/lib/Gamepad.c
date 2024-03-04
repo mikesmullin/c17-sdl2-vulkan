@@ -38,7 +38,7 @@ void Gamepad__OnInput(const SDL_Event* event) {
           Math__map(event->jaxis.value, GAMEPAD_AXIS_MIN, GAMEPAD_AXIS_MAX, -1.0f, 1.0f);
 
       // LOG_DEBUGF(
-      //     "JOYAXISMOTION device: %i, axis: %i, value: %i, mapped: %5.3f\n",
+      //     "JOYAXISMOTION device: %i, axis: %i, value: %i, mapped: %5.3f",
       //     event->jdevice.which,
       //     event->jaxis.axis,
       //     event->jaxis.value,
@@ -50,7 +50,7 @@ void Gamepad__OnInput(const SDL_Event* event) {
       g->bm_buttons[event->jbutton.button] = true;
 
       // LOG_DEBUGF(
-      //     "JOYBUTTONDOWN device: %i, button: %i\n",
+      //     "JOYBUTTONDOWN device: %i, button: %i",
       //     event->jdevice.which,
       //     event->jbutton.button);
       break;
@@ -60,7 +60,7 @@ void Gamepad__OnInput(const SDL_Event* event) {
       g->bm_buttons[event->jbutton.button] = false;
 
       // LOG_DEBUGF(
-      //     "JOYBUTTONUP device: %i, button: %i\n",
+      //     "JOYBUTTONUP device: %i, button: %i",
       //     event->jdevice.which,
       //     event->jbutton.button);
       break;

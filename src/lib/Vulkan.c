@@ -8,43 +8,10 @@
 
 #include "Base.h"
 
-const char* ckp_Vulkan__ERROR_MESSAGES[] = {
-    "None\n",
-    "volkInitialize() failed.\n",
-    "vkCreateInstance() failed.\n",
-    "vkEnumerateInstanceLayerProperties() failed to count. RequiredLayerCount: %u\n",
-    "vkEnumerateInstanceLayerProperties() count was zero. RequiredLayerCount: %u\n",
-    ("vkEnumerateInstanceLayerProperties() failed to read. RequiredLayerCount: %u\n "
-     "SupportedLayerCount: %u\n"),
-    "vkEnumerateInstanceLayerProperties() missing required layers.\n",
-    "vkEnumerateInstanceExtensionProperties() failed to count. RequiredExtensionCount: %u\n",
-    "vkEnumerateInstanceExtensionProperties() count was zero. RequiredExtensionCount: %u\n",
-    ("vkEnumerateInstanceExtensionProperties() failed to read. RequiredExtensionCount: %u, "
-     "SupportedExtensionCount: %u\n"),
-    "vkEnumerateInstanceExtensionProperties() missing required extensions.\n",
-    "vkEnumeratePhysicalDevices() failed to count.\n",
-    "vkEnumeratePhysicalDevices() count was zero.\n",
-    "vkEnumeratePhysicalDevices() failed to read. deviceCount: %u\n",
-    "Invalid physical device. index: %d\n",
-    "vkEnumerateDeviceExtensionProperties() failed to count. RequiredPhysicalExtensionCount: %u\n",
-    "vkEnumerateDeviceExtensionProperties() count was zero. RequiredPhysicalExtensionCount: %u\n",
-    ("vkEnumerateDeviceExtensionProperties() failed to read. RequiredPhysicalExtensionCount: %u, "
-     "SupportedPhysicalExtensionCount: %u\n"),
-    "vkEnumerateDeviceExtensionProperties() missing required extensions.\n",
-    "vkGetPhysicalDeviceSurfaceCapabilitiesKHR() failed.\n",
-    "vkGetPhysicalDeviceSurfaceFormatsKHR() failed to count.\n",
-    "vkGetPhysicalDeviceSurfaceFormatsKHR() count was zero.\n",
-    ("vkGetPhysicalDeviceSurfaceFormatsKHR() failed to read. formatCount: %u\n"),
-    "vkGetPhysicalDeviceSurfacePresentModesKHR() failed to count.\n",
-    "vkGetPhysicalDeviceSurfacePresentModesKHR() count was zero.\n",
-    "vkGetPhysicalDeviceSurfacePresentModesKHR() failed to read. presentModeCount: %u\n",
-
-};
-
-Vulkan__Error_t Vulkan__InitDriver1(Vulkan_t* self) {
-  self->m_requiredDriverExtensionCount = 0;
-  self->m_requiredValidationLayerCount = 0;
-  self->m_requiredPhysicalDeviceExtensionCount = 0;
+void Vulkan__InitDriver1(Vulkan_t* self) {
+  self->m_requiredDriverExtensionsCount = 0;
+  self->m_requiredValidationLayersCount = 0;
+  self->m_requiredPhysicalDeviceExtensionsCount = 0;
   self->m_physicalDevice = VK_NULL_HANDLE;
 
   self->m_aspectRatio = ASPECT_SQUARE;
@@ -60,60 +27,42 @@ Vulkan__Error_t Vulkan__InitDriver1(Vulkan_t* self) {
   self->m_minimized = false;
   self->m_maximized = false;
 
-  ASSERT_ERROR(
-      VK_SUCCESS == volkInitialize(),
-      VULKAN_ERROR_VOLK_INITIALIZE_FAILED,
-      ckp_Vulkan__ERROR_MESSAGES,
-      NULL)
-
-  return VULKAN_ERROR_NONE;
+  ASSERT(VK_SUCCESS == volkInitialize())
 }
 
 static const char* debug_validation_layer1 = "VK_LAYER_KHRONOS_validation";
 
-Vulkan__Error_t Vulkan__AssertDriverValidationLayersSupported(Vulkan_t* self) {
+void Vulkan__AssertDriverValidationLayersSupported(Vulkan_t* self) {
 #ifdef DEBUG_VULKAN
   // SDK-provided layer conveniently bundles all useful standard validation
-  self->m_requiredValidationLayers[self->m_requiredValidationLayerCount++] =
+  ASSERT(self->m_requiredValidationLayersCount < VULKAN_REQUIRED_VALIDATION_LAYERS_CAP)
+  self->m_requiredValidationLayers[self->m_requiredValidationLayersCount++] =
       debug_validation_layer1;
 #endif
 
-  if (self->m_requiredValidationLayerCount > 0) {
+  if (self->m_requiredValidationLayersCount > 0) {
     u32 availableLayersCount = 0;
-    ASSERT_ERROR(
-        VK_SUCCESS == vkEnumerateInstanceLayerProperties(&availableLayersCount, NULL),
-        VULKAN_ERROR_VK_EILP_COUNT_FAILED,
-        ckp_Vulkan__ERROR_MESSAGES,
-        self->m_requiredValidationLayerCount)
-    ASSERT_ERROR(
-        availableLayersCount > 0,
-        VULKAN_ERROR_VK_EILP_COUNT_ZERO,
-        ckp_Vulkan__ERROR_MESSAGES,
-        self->m_requiredValidationLayerCount)
-    LOG_INFOF("Driver Validation Layer Count: %u\n", availableLayersCount);
+    ASSERT(VK_SUCCESS == vkEnumerateInstanceLayerProperties(&availableLayersCount, NULL))
+    ASSERT(availableLayersCount > 0)
+    LOG_INFOF("validation layers count: %u", availableLayersCount)
     VkLayerProperties availableLayers[availableLayersCount];
-    ASSERT_ERROR(
-        VK_SUCCESS == vkEnumerateInstanceLayerProperties(&availableLayersCount, availableLayers),
-        VULKAN_ERROR_VK_EILP_READ_FAILED,
-        ckp_Vulkan__ERROR_MESSAGES,
-        self->m_requiredValidationLayerCount,
-        availableLayersCount)
+    ASSERT(VK_SUCCESS == vkEnumerateInstanceLayerProperties(&availableLayersCount, availableLayers))
 
     // print list of validation layers to console
     bool found;
-    LOG_INFOF("validation layers:\n");
+    LOG_INFOF("validation layers:")
     for (u8 i = 0; i < availableLayersCount; i++) {
       found = false;
-      for (u8 i2 = 0; i2 < self->m_requiredValidationLayerCount; i2++) {
+      for (u8 i2 = 0; i2 < self->m_requiredValidationLayersCount; i2++) {
         if (0 == strcmp(self->m_requiredValidationLayers[i2], availableLayers[i].layerName)) {
           found = true;
           break;
         }
       }
-      LOG_INFOF("  %s%s\n", availableLayers[i].layerName, found ? " (required)" : "");
+      LOG_INFOF("  %s%s", availableLayers[i].layerName, found ? " (required)" : "")
     }
     // validate the required validation layers are all found
-    for (u8 i3 = 0; i3 < self->m_requiredValidationLayerCount; i3++) {
+    for (u8 i3 = 0; i3 < self->m_requiredValidationLayersCount; i3++) {
       found = false;
       for (u8 i4 = 0; i4 < availableLayersCount; i4++) {
         if (0 == strcmp(self->m_requiredValidationLayers[i3], availableLayers[i4].layerName)) {
@@ -121,57 +70,42 @@ Vulkan__Error_t Vulkan__AssertDriverValidationLayersSupported(Vulkan_t* self) {
           break;
         }
       }
-      if (!found) {
-        LOG_INFOF("  missing %s", self->m_requiredValidationLayers[i3]);
-        ASSERT_ERROR(found, VULKAN_ERROR_VK_EILP_MISSING_REQUIRED, ckp_Vulkan__ERROR_MESSAGES, NULL)
-      }
+
+      ASSERT_CONTEXT(
+          found,
+          "A required validation layer is missing. Layer: %s",
+          self->m_requiredValidationLayers[i3])
     }
   }
-
-  return VULKAN_ERROR_NONE;
 }
 
-Vulkan__Error_t Vulkan__AssertDriverExtensionsSupported(Vulkan_t* self) {
+void Vulkan__AssertDriverExtensionsSupported(Vulkan_t* self) {
   // list the extensions supported by this driver
   u32 availableExtensionCount = 0;
-  ASSERT_ERROR(
-      VK_SUCCESS == vkEnumerateInstanceExtensionProperties(NULL, &availableExtensionCount, NULL),
-      VULKAN_ERROR_VK_EIEP_COUNT_FAILED,
-      ckp_Vulkan__ERROR_MESSAGES,
-      NULL)
-  ASSERT_ERROR(
-      availableExtensionCount > 0,
-      VULKAN_ERROR_VK_EIEP_COUNT_ZERO,
-      ckp_Vulkan__ERROR_MESSAGES,
-      self->m_requiredDriverExtensionCount)
-  LOG_INFOF("Driver Extension Count: %u\n", availableExtensionCount);
+  ASSERT(VK_SUCCESS == vkEnumerateInstanceExtensionProperties(NULL, &availableExtensionCount, NULL))
+  ASSERT(availableExtensionCount > 0)
+  LOG_INFOF("driver extensions count: %u", availableExtensionCount)
   VkExtensionProperties availableExtensions[availableExtensionCount];
-  ASSERT_ERROR(
-      VK_SUCCESS == vkEnumerateInstanceExtensionProperties(
-                        NULL,
-                        &availableExtensionCount,
-                        availableExtensions),
-      VULKAN_ERROR_VK_EIEP_READ_FAILED,
-      ckp_Vulkan__ERROR_MESSAGES,
-      self->m_requiredDriverExtensionCount,
-      availableExtensionCount)
+  ASSERT(
+      VK_SUCCESS ==
+      vkEnumerateInstanceExtensionProperties(NULL, &availableExtensionCount, availableExtensions))
 
   // print list of extensions to console
   bool found;
-  LOG_INFOF("driver extensions:\n");
+  LOG_INFOF("driver extensions:")
   for (u8 i = 0; i < availableExtensionCount; i++) {
     found = false;
-    for (u8 i2 = 0; i2 < self->m_requiredDriverExtensionCount; i2++) {
+    for (u8 i2 = 0; i2 < self->m_requiredDriverExtensionsCount; i2++) {
       if (0 == strcmp(self->m_requiredDriverExtensions[i2], availableExtensions[i].extensionName)) {
         found = true;
         break;
       }
     }
-    LOG_INFOF("  %s%s\n", availableExtensions[i].extensionName, found ? " (required)" : "");
+    LOG_INFOF("  %s%s", availableExtensions[i].extensionName, found ? " (required)" : "");
   }
 
   // validate the required extensions are all found
-  for (u8 i3 = 0; i3 < self->m_requiredDriverExtensionCount; i3++) {
+  for (u8 i3 = 0; i3 < self->m_requiredDriverExtensionsCount; i3++) {
     found = false;
     for (u8 i4 = 0; i4 < availableExtensionCount; i4++) {
       if (0 ==
@@ -180,16 +114,15 @@ Vulkan__Error_t Vulkan__AssertDriverExtensionsSupported(Vulkan_t* self) {
         break;
       }
     }
-    if (!found) {
-      LOG_INFOF("  missing %s", self->m_requiredDriverExtensions[i3]);
-      ASSERT_ERROR(found, VULKAN_ERROR_VK_EIEP_MISSING_REQUIRED, ckp_Vulkan__ERROR_MESSAGES, NULL)
-    }
-  }
 
-  return VULKAN_ERROR_NONE;
+    ASSERT_CONTEXT(
+        found,
+        "A required driver extension is missing. Extension: %s",
+        self->m_requiredDriverExtensions[i3])
+  }
 }
 
-Vulkan__Error_t Vulkan__CreateInstance(
+void Vulkan__CreateInstance(
     Vulkan_t* self,
     const char* name,
     const char* engineName,
@@ -218,18 +151,12 @@ Vulkan__Error_t Vulkan__CreateInstance(
     appInfo.apiVersion = VK_API_VERSION_1_3;
   }
 
-  createInfo.enabledLayerCount = self->m_requiredValidationLayerCount;
+  createInfo.enabledLayerCount = self->m_requiredValidationLayersCount;
   createInfo.ppEnabledLayerNames = self->m_requiredValidationLayers;
-  createInfo.enabledExtensionCount = self->m_requiredDriverExtensionCount;
+  createInfo.enabledExtensionCount = self->m_requiredDriverExtensionsCount;
   createInfo.ppEnabledExtensionNames = self->m_requiredDriverExtensions;
 
-  ASSERT_ERROR(
-      VK_SUCCESS == vkCreateInstance(&createInfo, NULL, &self->m_instance),
-      VULKAN_ERROR_VK_CREATE_INSTANCE_FAILED,
-      ckp_Vulkan__ERROR_MESSAGES,
-      NULL)
-
-  return VULKAN_ERROR_NONE;
+  ASSERT(VK_SUCCESS == vkCreateInstance(&createInfo, NULL, &self->m_instance))
 }
 
 void Vulkan__InitDriver2(Vulkan_t* self) {
@@ -239,23 +166,14 @@ void Vulkan__InitDriver2(Vulkan_t* self) {
 void Vulkan__UsePhysicalDevice(Vulkan_t* self, const u8 requiredDeviceIndex) {
   // list GPUs
   u32 deviceCount = 0;
-  ASSERT_ERROR(
-      VK_SUCCESS == vkEnumeratePhysicalDevices(self->m_instance, &deviceCount, NULL),
-      VULKAN_ERROR_VK_EPD_COUNT_FAILED,
-      ckp_Vulkan__ERROR_MESSAGES,
-      NULL)
-
-  ASSERT_ERROR(deviceCount > 0, VULKAN_ERROR_VK_EPD_COUNT_ZERO, ckp_Vulkan__ERROR_MESSAGES, NULL)
-
+  ASSERT(VK_SUCCESS == vkEnumeratePhysicalDevices(self->m_instance, &deviceCount, NULL))
+  ASSERT(deviceCount > 0)
+  LOG_INFOF("device count: %u", deviceCount)
   VkPhysicalDevice devices[deviceCount];
-  ASSERT_ERROR(
-      VK_SUCCESS == vkEnumeratePhysicalDevices(self->m_instance, &deviceCount, devices),
-      VULKAN_ERROR_VK_EPD_READ_FAILED,
-      ckp_Vulkan__ERROR_MESSAGES,
-      deviceCount)
+  ASSERT(VK_SUCCESS == vkEnumeratePhysicalDevices(self->m_instance, &deviceCount, devices))
 
   // print all GPUs found
-  LOG_INFOF("devices:\n");
+  LOG_INFOF("devices:")
   for (u8 i = 0; i < deviceCount; i++) {
     VkPhysicalDeviceProperties deviceProperties;
     vkGetPhysicalDeviceProperties(devices[i], &deviceProperties);
@@ -269,7 +187,7 @@ void Vulkan__UsePhysicalDevice(Vulkan_t* self, const u8 requiredDeviceIndex) {
 
     // list each GPU device found
     LOG_INFOF(
-        "  %u: %s%s%s%s\n",
+        "  %u: %s%s%s%s",
         i,
         deviceProperties.deviceName,
         i == requiredDeviceIndex ? " (selected)" : "",
@@ -284,61 +202,49 @@ void Vulkan__UsePhysicalDevice(Vulkan_t* self, const u8 requiredDeviceIndex) {
     }
   }
 
-  ASSERT_ERROR(
+  ASSERT_CONTEXT(
       false,
-      VULKAN_ERROR_INVALID_DEVICE_IDX,
-      ckp_Vulkan__ERROR_MESSAGES,
+      "The requested device was not available. deviceIdx: %u",
       requiredDeviceIndex)
 }
 
 static const char* specialPhysicalExtension1 = "VK_KHR_portability_subset";
 
 void Vulkan__AssertSwapChainSupported(Vulkan_t* self) {
-  self->m_requiredPhysicalDeviceExtensions[self->m_requiredPhysicalDeviceExtensionCount++] =
+  self->m_requiredPhysicalDeviceExtensions[self->m_requiredPhysicalDeviceExtensionsCount++] =
       VK_KHR_SWAPCHAIN_EXTENSION_NAME;
 
   // list the extensions supported by this physical device
   u32 availablePhysicalExtensionCount = 0;
-  ASSERT_ERROR(
+  ASSERT(
       VK_SUCCESS == vkEnumerateDeviceExtensionProperties(
                         self->m_physicalDevice,
                         NULL,
                         &availablePhysicalExtensionCount,
-                        NULL),
-      VULKAN_ERROR_VK_EDEP_COUNT_FAILED,
-      ckp_Vulkan__ERROR_MESSAGES,
-      self->m_requiredPhysicalDeviceExtensionCount)
-  ASSERT_ERROR(
-      availablePhysicalExtensionCount > 0,
-      VULKAN_ERROR_VK_EDEP_COUNT_ZERO,
-      ckp_Vulkan__ERROR_MESSAGES,
-      self->m_requiredPhysicalDeviceExtensionCount)
-  LOG_INFOF("Physical Device Extension Count: %u\n", availablePhysicalExtensionCount);
+                        NULL))
+  ASSERT(availablePhysicalExtensionCount > 0)
+  LOG_INFOF("physical device extensions count: %u", availablePhysicalExtensionCount)
   VkExtensionProperties availablePhysicalExtensions[availablePhysicalExtensionCount];
-  ASSERT_ERROR(
+  ASSERT(
       VK_SUCCESS == vkEnumerateDeviceExtensionProperties(
                         self->m_physicalDevice,
                         NULL,
                         &availablePhysicalExtensionCount,
-                        availablePhysicalExtensions),
-      VULKAN_ERROR_VK_EDEP_READ_FAILED,
-      ckp_Vulkan__ERROR_MESSAGES,
-      self->m_requiredPhysicalDeviceExtensionCount,
-      availablePhysicalExtensionCount)
+                        availablePhysicalExtensions))
 
   // quirk: vulkan spec says if this is supported, we must request it
-  for (u8 i = 0; i < self->m_requiredPhysicalDeviceExtensionCount; i++) {
+  for (u8 i = 0; i < self->m_requiredPhysicalDeviceExtensionsCount; i++) {
     if (0 == strcmp(specialPhysicalExtension1, self->m_requiredPhysicalDeviceExtensions[i])) {
-      self->m_requiredPhysicalDeviceExtensions[self->m_requiredPhysicalDeviceExtensionCount++] =
+      self->m_requiredPhysicalDeviceExtensions[self->m_requiredPhysicalDeviceExtensionsCount++] =
           specialPhysicalExtension1;
     }
   }
 
   // print list of extensions to console
-  LOG_INFOF("required device extensions:\n")
+  LOG_INFOF("required device extensions:")
   // validate the required extensions are all found
   bool found = false;
-  for (u8 i2 = 0; i2 < self->m_requiredPhysicalDeviceExtensionCount; i2++) {
+  for (u8 i2 = 0; i2 < self->m_requiredPhysicalDeviceExtensionsCount; i2++) {
     found = false;
     for (u8 i3 = 0; i3 < availablePhysicalExtensionCount; i3++) {
       if (0 == strcmp(
@@ -350,81 +256,259 @@ void Vulkan__AssertSwapChainSupported(Vulkan_t* self) {
     }
 
     LOG_INFOF(
-        "  %s%s\n",
+        "  %s%s",
         self->m_requiredPhysicalDeviceExtensions[i2],
         found ? " (required)" : " (missing)")
 
-    ASSERT_ERROR(
+    ASSERT_CONTEXT(
         found,
-        VULKAN_ERROR_VK_EDEP_MISSING_REQUIRED,
-        ckp_Vulkan__ERROR_MESSAGES,
-        self->m_requiredPhysicalDeviceExtensionCount,
-        availablePhysicalExtensionCount)
+        "A required physical device extension is missing. Extension: %s",
+        self->m_requiredPhysicalDeviceExtensions[i2])
   }
 
-  ASSERT_ERROR(
+  ASSERT(
       VK_SUCCESS == vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
                         self->m_physicalDevice,
                         self->m_surface,
-                        &self->m_SwapChain__capabilities),
-      VULKAN_ERROR_VK_GPDSC_FAILED,
-      ckp_Vulkan__ERROR_MESSAGES,
-      NULL)
+                        &self->m_SwapChain__capabilities))
 
-  u32 availableFormatCount = 0;
-  ASSERT_ERROR(
+  u32 availableFormatsCount = 0;
+  ASSERT(
       VK_SUCCESS == vkGetPhysicalDeviceSurfaceFormatsKHR(
                         self->m_physicalDevice,
                         self->m_surface,
-                        &availableFormatCount,
-                        NULL),
-      VULKAN_ERROR_VK_GPDSF_COUNT_FAILED,
-      ckp_Vulkan__ERROR_MESSAGES,
-      NULL)
-  ASSERT_ERROR(
-      availableFormatCount > 0,
-      VULKAN_ERROR_VK_GPDSF_COUNT_ZERO,
-      ckp_Vulkan__ERROR_MESSAGES,
-      NULL)
-  LOG_INFOF("Physical Device Surface Format Count: %u\n", availableFormatCount);
-  ASSERT_ERROR(
+                        &availableFormatsCount,
+                        NULL))
+  ASSERT(availableFormatsCount > 0)
+  ASSERT(availableFormatsCount <= VULKAN_SWAPCHAIN_FORMATS_CAP)
+  LOG_INFOF("physical device surface formats count: %u", availableFormatsCount);
+  ASSERT(
       VK_SUCCESS == vkGetPhysicalDeviceSurfaceFormatsKHR(
                         self->m_physicalDevice,
                         self->m_surface,
-                        &availableFormatCount,
-                        self->m_SwapChain__formats),
-      VULKAN_ERROR_VK_GPDSF_READ_FAILED,
-      ckp_Vulkan__ERROR_MESSAGES,
-      availableFormatCount)
+                        &availableFormatsCount,
+                        self->m_SwapChain__formats))
 
-  u32 availablePresentModeCount = 0;
-  ASSERT_ERROR(
+  u32 availablePresentModesCount = 0;
+  ASSERT(
       VK_SUCCESS == vkGetPhysicalDeviceSurfacePresentModesKHR(
                         self->m_physicalDevice,
                         self->m_surface,
-                        &availablePresentModeCount,
-                        NULL),
-      VULKAN_ERROR_VK_GPDSPM_COUNT_FAILED,
-      ckp_Vulkan__ERROR_MESSAGES,
-      NULL)
-  ASSERT_ERROR(
-      availablePresentModeCount > 0,
-      VULKAN_ERROR_VK_GPDSPM_COUNT_ZERO,
-      ckp_Vulkan__ERROR_MESSAGES,
-      NULL)
-  LOG_INFOF("Physical Device Surface Present Mode Count: %u\n", availablePresentModeCount);
-  ASSERT_ERROR(
+                        &availablePresentModesCount,
+                        NULL))
+  ASSERT(availablePresentModesCount > 0)
+  ASSERT(availablePresentModesCount <= VULKAN_SWAPCHAIN_PRESENT_MODES_CAP)
+  LOG_INFOF("physical device surface present modes count: %u", availablePresentModesCount);
+  ASSERT(
       VK_SUCCESS == vkGetPhysicalDeviceSurfacePresentModesKHR(
                         self->m_physicalDevice,
                         self->m_surface,
-                        &availablePresentModeCount,
-                        self->m_SwapChain__presentModes),
-      VULKAN_ERROR_VK_GPDSPM_READ_FAILED,
-      ckp_Vulkan__ERROR_MESSAGES,
-      availablePresentModeCount)
+                        &availablePresentModesCount,
+                        self->m_SwapChain__presentModes))
 }
 
-void Vulkan__UseLogicalDevice(Vulkan_t* self) {
+void Vulkan__CreateLogicalDeviceAndQueues(Vulkan_t* self) {
+  ASSERT(VK_NULL_HANDLE != self->m_physicalDevice)
+
+  // enumerate the queue families on current physical device
+  // LocateQueueFamilies();
+  /*
+    {
+      ABORT_IF(!self->m_surface)
+
+      u32 queueFamilyCount = 0;
+      vkGetPhysicalDeviceQueueFamilyProperties(self->m_physicalDevice, &queueFamilyCount, NULL);
+
+      VkQueueFamilyProperties queueFamilies[queueFamilyCount];
+      vkGetPhysicalDeviceQueueFamilyProperties(
+          self->m_physicalDevice,
+          &queueFamilyCount,
+          queueFamilies);
+
+      // list all queue families found on the current physical device
+      LOG_DEBUGF("device queue families:");
+      bool same = false;
+      for (uint32_t i = 0; i < queueFamilies.size(); i++) {
+        const auto& queueFamily = queueFamilies[i];
+
+        const bool graphics = queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT;
+        const bool compute = queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT;
+        const bool transfer = queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT;
+        const bool sparse = queueFamily.queueFlags & VK_QUEUE_SPARSE_BINDING_BIT;
+        const bool protect = queueFamily.queueFlags & VK_QUEUE_PROTECTED_BIT;
+        // if VK_KHR_video_decode_queue extension:
+        // const bool video_decode = queueFamily.queueFlags & VK_QUEUE_VIDEO_DECODE_BIT;
+        // ifdef VK_ENABLE_BETA_EXTENSIONS:
+        // const bool video_encode = queueFamily.queueFlags & VK_QUEUE_VIDEO_ENCODE_BIT;
+        const bool optical = queueFamily.queueFlags & VK_QUEUE_OPTICAL_FLOW_BIT_NV;
+
+        VkBool32 present = false;
+        // Query if presentation is supported
+        //
+    https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/vkGetPhysicalDeviceSurfaceSupportKHR.html
+        if (vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &present) !=
+            VK_SUCCESS) {
+          Logger::Debugf("vkGetPhysicalDeviceSurfaceSupportKHR() failed. queueFamilyIndex: %u", i);
+        }
+
+        // strategy: select fewest family indices where required queues are present
+        if (!same) {
+          if (graphics && present) {
+            // prioritize any queue with both
+            same = true;
+            pdqs.graphics.index = i;
+            pdqs.present.index = i;
+          } else if (graphics) {
+            pdqs.graphics.index = i;
+          } else if (present) {
+            pdqs.present.index = i;
+          }
+        }
+
+        Logger::Debugf(
+            "  %u: flags:%s%s%s%s%s%s%s",
+            i,
+            present ? " PRESENT" : "",
+            graphics ? " GRAPHICS" : "",
+            compute ? " COMPUTE" : "",
+            transfer ? " TRANSFER" : "",
+            sparse ? " SPARSE" : "",
+            protect ? " PROTECT" : "",
+            optical ? " OPTICAL" : "");
+      }
+
+      Logger::Debugf(
+          "  selected: graphics: %u, present: %u",
+          pdqs.graphics.index,
+          pdqs.present.index);
+    }
+
+    //   // for each unique queue family index,
+    //   // construct a request for pointer to its VkQueue
+    //   if (!pdqs.graphics.index.has_value()) {
+    //     throw Logger::Errorf("GRAPHICS queue not found within queue families of physical
+    device.");
+    //   }
+    //   if (!pdqs.present.index.has_value()) {
+    //     throw Logger::Errorf("PRESENT queue not found within queue families of physical
+    device.");
+    //   }
+    //   const bool same = pdqs.graphics.index.value() == pdqs.present.index.value();
+    //   std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+    //   {
+    //     // Structure specifying parameters of a newly created device queue
+    //     //
+    //
+    https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkDeviceQueueCreateInfo.html
+    //     VkDeviceQueueCreateInfo createInfo{};
+
+    //     // the type of this structure.
+    //     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+
+    //     // NULL or a pointer to a structure extending this structure.
+    //     // createInfo.pNext = NULL;
+
+    //     // a bitmask indicating behavior of the queues.
+    //     // createInfo.flags = 0;
+
+    //     // an unsigned integer indicating the index of the queue family in which to create the
+    //     queues on
+    //     // this device. This index corresponds to the index of an element of the
+    //     pQueueFamilyProperties
+    //     // array, and that was returned by vkGetPhysicalDeviceQueueFamilyProperties.
+    //     createInfo.queueFamilyIndex = pdqs.graphics.index.value();
+
+    //     // an unsigned integer specifying the number of queues to create in the queue family
+    //     // indicated by queueFamilyIndex, and with the behavior specified by flags.
+    //     createInfo.queueCount = 1;
+
+    //     // a pointer to an array of queueCount normalized floating point values, specifying
+    //     priorities
+    //     // of work that will be submitted to each created queue.
+    //     const float queuePriority = 1.0f;
+    //     createInfo.pQueuePriorities = &queuePriority;
+
+    //     // one request per unique queue family index
+    //     queueCreateInfos.push_back(createInfo);
+    //   }
+    //   if (!same) {
+    //     VkDeviceQueueCreateInfo createInfo{};
+    //     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    //     createInfo.queueFamilyIndex = pdqs.present.index.value();
+    //     createInfo.queueCount = 1;
+    //     const float queuePriority = 1.0f;
+    //     createInfo.pQueuePriorities = &queuePriority;
+    //     queueCreateInfos.push_back(createInfo);
+    //   }
+
+    //   // Structure describing the fine-grained features that can be supported by an
+    implementation
+    //   //
+    //
+    https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkPhysicalDeviceFeatures.html
+    //   VkPhysicalDeviceFeatures deviceFeatures{};
+
+    //   // used with texture images
+    //   deviceFeatures.samplerAnisotropy = VK_TRUE;
+
+    //   // Structure specifying parameters of a newly created [logical] device
+    //   //
+    https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkDeviceCreateInfo.html
+    //   VkDeviceCreateInfo createInfo{};
+    //   // the type of this structure.
+    //   createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+
+    //   // NULL or a pointer to a structure extending this structure.
+    //   createInfo.pNext = NULL;
+
+    //   // reserved for future use.
+    //   createInfo.flags = static_cast<uint32_t>(0);
+
+    //   // unsigned integer size of the pQueueCreateInfos array.
+    //   createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+
+    //   // pointer to an array of VkDeviceQueueCreateInfo structures describing the queues that are
+    //   // requested to be created along with the logical device.
+    //   createInfo.pQueueCreateInfos = queueCreateInfos.data();
+
+    // // define validation layers to be used, per-device.
+    // // deprecated, because we also defined it on the VkInstance,
+    // // but recommended to also keep here for backward-compatibility.
+    // #ifdef DEBUG_VULKAN
+    //   createInfo.enabledLayerCount = static_cast<uint32_t>(requiredValidationLayers.size());
+    //   createInfo.ppEnabledLayerNames = requiredValidationLayers.data();
+    // #else
+    //   createInfo.enabledLayerCount = 0;
+    // #endif
+
+    //   // number of device extensions to enable.
+    //   createInfo.enabledExtensionCount =
+    //   static_cast<uint32_t>(requiredPhysicalDeviceExtensions.size());
+
+    //   // pointer to an array of enabledExtensionCount null-terminated UTF-8 strings containing
+    the
+    //   names
+    //   // of extensions to enable for the created device.
+    //   createInfo.ppEnabledExtensionNames = requiredPhysicalDeviceExtensions.data();
+
+    //   // NULL or a pointer to a VkPhysicalDeviceFeatures structure containing boolean indicators
+    of
+    //   all
+    //   // the features to be enabled.
+    //   createInfo.pEnabledFeatures = &deviceFeatures;
+
+    //   // Create a new [logical] device instance
+    //   // https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/vkCreateDevice.html
+    //   if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &logicalDevice) != VK_SUCCESS) {
+    //     throw Logger::Errorf("vkCreateDevice() failed.");
+    //   }
+
+    //   // https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/vkGetDeviceQueue.html
+    //   vkGetDeviceQueue(logicalDevice, pdqs.graphics.index.value(), 0, &pdqs.graphics.queue);
+    //   if (!same) {
+    //     vkGetDeviceQueue(logicalDevice, pdqs.present.index.value(), 0, &pdqs.present.queue);
+    //   }
+    */
 }
 
 void Vulkan__CreateSwapChain(Vulkan_t* self) {
