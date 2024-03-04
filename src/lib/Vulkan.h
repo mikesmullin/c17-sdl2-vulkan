@@ -10,19 +10,33 @@ typedef enum {
   VULKAN_ERROR_NONE = 0,
   VULKAN_ERROR_VOLK_INITIALIZE_FAILED = 1,
   VULKAN_ERROR_VK_CREATE_INSTANCE_FAILED = 2,
+  VULKAN_ERROR_VK_EILP_COUNT_FAILED = 3,
+  VULKAN_ERROR_VK_EILP_COUNT_ZERO = 4,
+  VULKAN_ERROR_VK_EILP_READ_FAILED = 5,
+  VULKAN_ERROR_VK_EILP_MISSING_REQUIRED = 6,
+  VULKAN_ERROR_VK_EIEP_COUNT_FAILED = 7,
+  VULKAN_ERROR_VK_EIEP_COUNT_ZERO = 8,
+  VULKAN_ERROR_VK_EIEP_READ_FAILED = 9,
+  VULKAN_ERROR_VK_EIEP_MISSING_REQUIRED = 10,
 } Vulkan__Error_t;
 
 extern const char* ckp_Vulkan__ERROR_MESSAGES[];
 
+#define VULKAN_REQUIRED_VALIDATION_LAYERS_CAP 10
+#define VULKAN_REQUIRED_DRIVER_EXTENSIONS_CAP 10
+
 typedef struct {
   unsigned int m_requiredDriverExtensionCount;
-  const char** m_requiredDriverExtensions;
+  const char* m_requiredDriverExtensions[VULKAN_REQUIRED_DRIVER_EXTENSIONS_CAP];
   unsigned int m_requiredValidationLayerCount;
-  const char** m_requiredValidationLayers;
+  const char* m_requiredValidationLayers[VULKAN_REQUIRED_VALIDATION_LAYERS_CAP];
   VkInstance* m_instance;
 } Vulkan_t;
 
 Vulkan__Error_t Vulkan__InitDriver(Vulkan_t* self);
+
+Vulkan__Error_t Vulkan__AssertDriverValidationLayersSupported(Vulkan_t* self);
+Vulkan__Error_t Vulkan__AssertDriverExtensionsSupported(Vulkan_t* self);
 
 // void Vulkan__RequireValidationLayer(const char* layerName);
 // void Vulkan__RequireDriverExtension(const char* layerName);

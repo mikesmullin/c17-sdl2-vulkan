@@ -40,9 +40,14 @@ int main() {
 
   Window__Begin(&s_Window);
 
-  for (u8 i = 0; i < s_Vulkan.m_requiredDriverExtensionCount; i++) {
-    printf("required driver extension: %s\n", (char*)((&s_Vulkan.m_requiredDriverExtensions)[i]));
-  }
+  Vulkan__AssertDriverValidationLayersSupported(&s_Vulkan);
+
+#if OS_MAC == 1
+  // enable MoltenVK support for MacOS cross-platform support
+  s_Vulkan.m_requiredDriverExtensions[s_Vulkan.m_requiredDriverExtensionCount++] =
+      VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME;
+#endif
+  Vulkan__AssertDriverExtensionsSupported(&s_Vulkan);
 
   // Vulkan__Error_t e2 = Vulkan__Init1();
   // ASSERT_ERROR(e2 == 0, e2, ckp_Vulkan__ERROR_MESSAGES, NULL)

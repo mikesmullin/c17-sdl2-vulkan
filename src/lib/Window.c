@@ -49,7 +49,8 @@ Window__Error_t Window__Begin(Window_t* self) {
       SDL_TRUE == SDL_Vulkan_GetInstanceExtensions(
                       self->window,
                       &self->vulkan->m_requiredDriverExtensionCount,
-                      (const char**)&self->vulkan->m_requiredDriverExtensions),
+                      //(const char**)&self->vulkan->m_requiredDriverExtensions),
+                      self->vulkan->m_requiredDriverExtensions),
       WINDOW_ERROR_GET_INSTANCE_EXTENSIONS_FAILED_WRITE,
       ckp_Window__ERROR_MESSAGES,
       SDL_GetError());
