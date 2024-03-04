@@ -28,6 +28,8 @@ typedef enum {
 
 extern const char* ckp_Vulkan__ERROR_MESSAGES[];
 
+#define ASPECT_SQUARE 1.0f / 1
+
 #define VULKAN_REQUIRED_VALIDATION_LAYERS_CAP 10
 #define VULKAN_REQUIRED_DRIVER_EXTENSIONS_CAP 10
 
@@ -39,6 +41,24 @@ typedef struct {
   VkInstance m_instance;
   VkPhysicalDevice m_physicalDevice;
   VkSurfaceKHR m_surface;
+
+  f32 m_aspectRatio;
+  // window size may differ (ie. viewport may have fixed aspect
+  // ratio, while window has letterbox/pillarbox)
+  u32 m_windowWidth;
+  u32 m_windowHeight;
+  // viewport will upsample/downsample buffer to a particular screen size
+  u32 m_viewportX;
+  u32 m_viewportY;
+  u32 m_viewportWidth;
+  u32 m_viewportHeight;
+  // buffers may be larger or smaller than they appear on
+  // screen (especially HDPI retina)
+  u32 m_bufferWidth;
+  u32 m_bufferHeight;
+  bool m_framebufferResized;
+  bool m_minimized;
+  bool m_maximized;
 } Vulkan_t;
 
 Vulkan__Error_t Vulkan__InitDriver1(Vulkan_t* self);

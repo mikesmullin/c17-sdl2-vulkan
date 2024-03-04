@@ -56,8 +56,9 @@ int main() {
   Vulkan__UsePhysicalDevice(&s_Vulkan, 0);
   Window__Bind(&s_Window);
 
-  // auto b = w.GetDrawableAreaExtentBounds();
-  // w.KeepAspectRatio(b.width, b.height);
+  DrawableArea_t area = {0, 0};
+  Window__GetDrawableAreaExtentBounds(&s_Window, &area);
+  Window__KeepAspectRatio(&s_Window, area.width, area.height);
 
   bool quit = false;
   SDL_Event e;

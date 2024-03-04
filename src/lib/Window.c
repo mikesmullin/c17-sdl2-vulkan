@@ -3,6 +3,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
 
+#include "Base.h"
 #include "Vulkan.h"
 
 const char* ckp_Window__ERROR_MESSAGES[] = {
@@ -69,7 +70,36 @@ void Window__Bind(Window_t* self) {
       SDL_GetError())
 }
 
-void Window__KeepAspectRatio(Window_t* self) {
+/**
+ * for use when telling Vulkan what its drawable area (extent bounds) are, according to SDL
+ * window. this may differ from what we requested, and must be less than the physical device
+ * capability.
+ */
+void Window__GetDrawableAreaExtentBounds(Window_t* self, DrawableArea_t* area) {
+  int tmpWidth, tmpHeight = 0;
+  SDL_Vulkan_GetDrawableSize(self->window, &tmpWidth, &tmpHeight);
+  area->width = tmpWidth;
+  area->height = tmpHeight;
+}
+
+void Window__KeepAspectRatio(Window_t* self, const u32 width, const u32 height) {
+  // use the smaller of the original vs. aspect dimension
+  const u32 targetWidth = MATH_MIN((f32)width, height * self->vulkan->m_aspectRatio);
+  const u32 targetHeight = MATH_MIN((f32)height, width / self->vulkan->m_aspectRatio);
+
+  // and then center it to provide the illusion of aspect ratio
+  const u32 left = (width - targetWidth) / 2;
+  const u32 top = (height - targetHeight) / 2;
+
+  self->vulkan->m_windowWidth = width;
+  self->vulkan->m_windowHeight = height;
+  self->vulkan->m_viewportX = left;
+  self->vulkan->m_viewportY = top;
+  self->vulkan->m_viewportWidth = targetWidth;
+  self->vulkan->m_viewportHeight = targetHeight;
+  self->vulkan->m_bufferWidth = width;
+  self->vulkan->m_bufferHeight = height;
+  self->vulkan->m_framebufferResized = true;
 }
 
 void Window__RenderLoop(Window_t* self) {

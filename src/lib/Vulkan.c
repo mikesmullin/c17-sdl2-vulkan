@@ -33,6 +33,19 @@ Vulkan__Error_t Vulkan__InitDriver1(Vulkan_t* self) {
   self->m_requiredValidationLayerCount = 0;
   self->m_physicalDevice = VK_NULL_HANDLE;
 
+  self->m_aspectRatio = ASPECT_SQUARE;
+  self->m_windowWidth = 0;
+  self->m_windowHeight = 0;
+  self->m_viewportX = 0;
+  self->m_viewportY = 0;
+  self->m_viewportWidth = 0;
+  self->m_viewportHeight = 0;
+  u32 bufferWidth = 0;
+  u32 bufferHeight = 0;
+  self->m_framebufferResized = false;
+  self->m_minimized = false;
+  self->m_maximized = false;
+
   ASSERT_ERROR(
       VK_SUCCESS == volkInitialize(),
       VULKAN_ERROR_VOLK_INITIALIZE_FAILED,

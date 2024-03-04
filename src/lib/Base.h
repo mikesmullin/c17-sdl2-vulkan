@@ -47,11 +47,14 @@ typedef double f64;
 // m for members
 // p for pointer
 // s for static (as in private)
-// f for float
-// b for bool
-// c for char
 
 // Suffixes
 // t for typedef
+
+// Math
+
+#define MATH_MIN(a, b) (((a) < (b)) ? (a) : (b))
+#define MATH_MAX(a, b) (((a) > (b)) ? (a) : (b))
+#define MATH_CLAMP(min, n, max) (((n) < (min)) ? (min) : ((max) < (n)) ? (max) : (x))
 
 #endif
