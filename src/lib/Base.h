@@ -57,6 +57,6 @@ typedef double f64;
 
 #define MATH_MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define MATH_MAX(a, b) (((a) > (b)) ? (a) : (b))
-#define MATH_CLAMP(min, n, max) (((n) < (min)) ? (min) : ((max) < (n)) ? (max) : (x))
+#define MATH_CLAMP(min, n, max) (((n) < (min)) ? (min) : ((max) < (n)) ? (max) : (n))
 
 #endif

@@ -65,7 +65,7 @@ int main() {
   // establish vulkan scene
   Vulkan__AssertSwapChainSupported(&s_Vulkan);
   Vulkan__CreateLogicalDeviceAndQueues(&s_Vulkan);
-  Vulkan__CreateSwapChain(&s_Vulkan);
+  Vulkan__CreateSwapChain(&s_Vulkan, NULL);
 
   // main loop
   Window__RenderLoop(&s_Window, PHYSICS_FPS, RENDER_FPS, &physicsCallback, &renderCallback);

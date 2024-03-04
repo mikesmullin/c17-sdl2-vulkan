@@ -27,6 +27,9 @@ void Vulkan__InitDriver1(Vulkan_t* self) {
   self->m_minimized = false;
   self->m_maximized = false;
 
+  self->m_SwapChain__formats_count = 0;
+  self->m_SwapChain__presentModes_count = 0;
+
   self->m_SwapChain__queues.same = false;
   self->m_SwapChain__queues.graphics_found = false;
   self->m_SwapChain__queues.graphics__index = 0;
@@ -280,38 +283,40 @@ void Vulkan__AssertSwapChainSupported(Vulkan_t* self) {
                         self->m_surface,
                         &self->m_SwapChain__capabilities))
 
-  u32 availableFormatsCount = 0;
+  self->m_SwapChain__formats_count = 0;
   ASSERT(
       VK_SUCCESS == vkGetPhysicalDeviceSurfaceFormatsKHR(
                         self->m_physicalDevice,
                         self->m_surface,
-                        &availableFormatsCount,
+                        &self->m_SwapChain__formats_count,
                         NULL))
-  ASSERT(availableFormatsCount > 0)
-  ASSERT(availableFormatsCount <= VULKAN_SWAPCHAIN_FORMATS_CAP)
-  LOG_INFOF("physical device surface formats count: %u", availableFormatsCount);
+  ASSERT(self->m_SwapChain__formats_count > 0)
+  ASSERT(self->m_SwapChain__formats_count <= VULKAN_SWAPCHAIN_FORMATS_CAP)
+  LOG_INFOF("physical device surface formats count: %u", self->m_SwapChain__formats_count);
   ASSERT(
       VK_SUCCESS == vkGetPhysicalDeviceSurfaceFormatsKHR(
                         self->m_physicalDevice,
                         self->m_surface,
-                        &availableFormatsCount,
+                        &self->m_SwapChain__formats_count,
                         self->m_SwapChain__formats))
 
-  u32 availablePresentModesCount = 0;
+  self->m_SwapChain__presentModes_count = 0;
   ASSERT(
       VK_SUCCESS == vkGetPhysicalDeviceSurfacePresentModesKHR(
                         self->m_physicalDevice,
                         self->m_surface,
-                        &availablePresentModesCount,
+                        &self->m_SwapChain__presentModes_count,
                         NULL))
-  ASSERT(availablePresentModesCount > 0)
-  ASSERT(availablePresentModesCount <= VULKAN_SWAPCHAIN_PRESENT_MODES_CAP)
-  LOG_INFOF("physical device surface present modes count: %u", availablePresentModesCount);
+  ASSERT(self->m_SwapChain__presentModes_count > 0)
+  ASSERT(self->m_SwapChain__presentModes_count <= VULKAN_SWAPCHAIN_PRESENT_MODES_CAP)
+  LOG_INFOF(
+      "physical device surface present modes count: %u",
+      self->m_SwapChain__presentModes_count);
   ASSERT(
       VK_SUCCESS == vkGetPhysicalDeviceSurfacePresentModesKHR(
                         self->m_physicalDevice,
                         self->m_surface,
-                        &availablePresentModesCount,
+                        &self->m_SwapChain__presentModes_count,
                         self->m_SwapChain__presentModes))
 }
 
@@ -525,5 +530,103 @@ void Vulkan__CreateLogicalDeviceAndQueues(Vulkan_t* self) {
   }
 }
 
-void Vulkan__CreateSwapChain(Vulkan_t* self) {
+void Vulkan__CreateSwapChain(Vulkan_t* self, VkSwapchainKHR priorSwapChain) {
+  bool found1 = false;
+  VkSurfaceFormatKHR format;
+
+  for (u8 i = 0; i < self->m_SwapChain__formats_count; i++) {
+    if (self->m_SwapChain__formats[i].format == VK_FORMAT_B8G8R8A8_SRGB &&
+        self->m_SwapChain__formats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+      format = self->m_SwapChain__formats[i];
+      found1 = true;
+      break;
+    }
+  }
+  ASSERT_CONTEXT(
+      found1,
+      "Couldn't locate physical device support for the swap chain format we wanted. "
+      "format: VK_FORMAT_B8G8R8A8_SRGB, "
+      "colorSpace: VK_COLOR_SPACE_SRGB_NONLINEAR_KHR")
+
+  bool found2 = false;
+  VkPresentModeKHR mode;
+  for (u8 i = 0; i < self->m_SwapChain__presentModes_count; i++) {
+    if (self->m_SwapChain__presentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR) {
+      mode = self->m_SwapChain__presentModes[i];
+      found2 = true;
+      break;
+    }
+  }
+  if (!found2) {
+    mode = VK_PRESENT_MODE_FIFO_KHR;
+  }
+
+  VkExtent2D extent;
+  extent.width = self->m_bufferWidth;
+  extent.height = self->m_bufferHeight;
+
+  self->m_SwapChain__images_count = MATH_CLAMP(
+      self->m_SwapChain__capabilities.minImageCount + 1,
+      self->m_SwapChain__capabilities.minImageCount,
+      self->m_SwapChain__capabilities.maxImageCount);
+
+  VkSwapchainCreateInfoKHR createInfo;
+  createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+  createInfo.surface = self->m_surface;
+  createInfo.minImageCount = self->m_SwapChain__images_count;
+  createInfo.imageFormat = format.format;
+  createInfo.imageColorSpace = format.colorSpace;
+  createInfo.imageExtent = extent;
+  createInfo.imageArrayLayers = 1;
+  createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+  if (self->m_SwapChain__queues.same) {
+    createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    createInfo.queueFamilyIndexCount = 0;   // default
+    createInfo.pQueueFamilyIndices = NULL;  // default
+  } else {
+    createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+    createInfo.queueFamilyIndexCount = 2;
+    const u32 indicies[] = {
+        self->m_SwapChain__queues.graphics__index,
+        self->m_SwapChain__queues.present__index,
+    };
+    createInfo.pQueueFamilyIndices = indicies;
+  }
+  createInfo.preTransform = self->m_SwapChain__capabilities.currentTransform;
+  createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+  createInfo.presentMode = mode;
+  createInfo.clipped = VK_TRUE;
+  createInfo.oldSwapchain = (NULL == priorSwapChain ? VK_NULL_HANDLE : priorSwapChain);
+
+  ASSERT(
+      VK_SUCCESS ==
+      vkCreateSwapchainKHR(self->m_logicalDevice, &createInfo, NULL, &self->m_swapChain))
+
+  u32 receivedImageCount = 0;
+  ASSERT(
+      VK_SUCCESS ==
+      vkGetSwapchainImagesKHR(self->m_logicalDevice, self->m_swapChain, &receivedImageCount, NULL))
+  ASSERT_CONTEXT(
+      receivedImageCount <= VULKAN_SWAPCHAIN_IMAGES_CAP,
+      "mismatch in swap chain image count. available: %u, capacity: %u",
+      receivedImageCount,
+      VULKAN_SWAPCHAIN_IMAGES_CAP)
+  ASSERT_CONTEXT(
+      VK_SUCCESS == vkGetSwapchainImagesKHR(
+                        self->m_logicalDevice,
+                        self->m_swapChain,
+                        &receivedImageCount,
+                        self->m_SwapChain__images),
+      "imageCount: %u",
+      receivedImageCount)
+
+  self->m_SwapChain__imageFormat = format.format;
+  self->m_SwapChain__extent = extent;
+
+  LOG_INFOF(
+      "swap chain %screated. width %u height %u imageCount %u",
+      (NULL == priorSwapChain ? "" : "re"),
+      extent.width,
+      extent.height,
+      receivedImageCount);
 }

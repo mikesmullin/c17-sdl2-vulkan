@@ -15,6 +15,7 @@
 #define VULKAN_REQUIRED_PHYSICAL_DEVICE_EXTENSIONS_CAP 5
 #define VULKAN_SWAPCHAIN_FORMATS_CAP 10
 #define VULKAN_SWAPCHAIN_PRESENT_MODES_CAP 10
+#define VULKAN_SWAPCHAIN_IMAGES_CAP 3
 
 typedef struct {
   bool same;
@@ -34,11 +35,13 @@ typedef struct {
   unsigned int m_requiredPhysicalDeviceExtensionsCount;
   const char* m_requiredPhysicalDeviceExtensions[VULKAN_REQUIRED_PHYSICAL_DEVICE_EXTENSIONS_CAP];
 
+  // instance
   VkInstance m_instance;
   VkPhysicalDevice m_physicalDevice;
   VkSurfaceKHR m_surface;
   VkDevice m_logicalDevice;
 
+  // window
   f32 m_aspectRatio;
   // window size may differ (ie. viewport may have fixed aspect
   // ratio, while window has letterbox/pillarbox)
@@ -57,8 +60,16 @@ typedef struct {
   bool m_minimized;
   bool m_maximized;
 
+  // swapchain
+  VkSwapchainKHR m_swapChain;
   VkSurfaceCapabilitiesKHR m_SwapChain__capabilities;
+  u32 m_SwapChain__images_count;
+  VkImage m_SwapChain__images[VULKAN_SWAPCHAIN_IMAGES_CAP];
+  VkFormat m_SwapChain__imageFormat;
+  VkExtent2D m_SwapChain__extent;
+  u32 m_SwapChain__formats_count;
   VkSurfaceFormatKHR m_SwapChain__formats[VULKAN_SWAPCHAIN_FORMATS_CAP];
+  u32 m_SwapChain__presentModes_count;
   VkPresentModeKHR m_SwapChain__presentModes[VULKAN_SWAPCHAIN_PRESENT_MODES_CAP];
   Vulkan__PhysicalDeviceQueue_t m_SwapChain__queues;
 } Vulkan_t;
@@ -82,6 +93,6 @@ void Vulkan__UsePhysicalDevice(Vulkan_t* self, const u8 requiredDeviceIndex);
 
 void Vulkan__AssertSwapChainSupported(Vulkan_t* self);
 void Vulkan__CreateLogicalDeviceAndQueues(Vulkan_t* self);
-void Vulkan__CreateSwapChain(Vulkan_t* self);
+void Vulkan__CreateSwapChain(Vulkan_t* self, VkSwapchainKHR oldSwapChain);
 
 #endif
