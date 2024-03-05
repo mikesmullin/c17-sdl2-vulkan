@@ -719,3 +719,38 @@ void Vulkan__CreateRenderPass(Vulkan_t* self) {
       VK_SUCCESS ==
       vkCreateRenderPass(self->m_logicalDevice, &renderPassInfo, NULL, &self->m_renderPass))
 }
+
+void Vulkan__CreateDescriptorSetLayout(Vulkan_t* self) {
+  VkDescriptorSetLayoutBinding uboLayoutBinding;
+  uboLayoutBinding.binding = 0;
+  uboLayoutBinding.descriptorCount = 1;
+  uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  uboLayoutBinding.pImmutableSamplers = NULL;
+  uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+  VkDescriptorSetLayoutBinding samplerLayoutBinding;
+  samplerLayoutBinding.binding = 1;
+  samplerLayoutBinding.descriptorCount = 1;
+  samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  samplerLayoutBinding.pImmutableSamplers = NULL;
+  samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+  u32 bindingsCount = 2;
+  VkDescriptorSetLayoutBinding bindings[bindingsCount];
+  bindings[0] = uboLayoutBinding;
+  bindings[1] = samplerLayoutBinding;
+
+  VkDescriptorSetLayoutCreateInfo layoutInfo;
+  VkDescriptorSetLayoutCreateFlags flags;
+  layoutInfo.flags = flags;
+  layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+  layoutInfo.bindingCount = bindingsCount;
+  layoutInfo.pBindings = bindings;
+
+  ASSERT(
+      VK_SUCCESS == vkCreateDescriptorSetLayout(
+                        self->m_logicalDevice,
+                        &layoutInfo,
+                        NULL,
+                        &self->m_descriptorSetLayout))
+}

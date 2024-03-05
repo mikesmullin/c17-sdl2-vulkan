@@ -68,6 +68,7 @@ int main() {
   Vulkan__CreateSwapChain(&s_Vulkan, NULL);
   Vulkan__CreateImageViews(&s_Vulkan);
   Vulkan__CreateRenderPass(&s_Vulkan);
+  Vulkan__CreateDescriptorSetLayout(&s_Vulkan);
 
   // main loop
   Window__RenderLoop(&s_Window, PHYSICS_FPS, RENDER_FPS, &physicsCallback, &renderCallback);

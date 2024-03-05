@@ -76,6 +76,7 @@ typedef struct {
 
   // pipeline
   VkRenderPass m_renderPass;
+  VkDescriptorSetLayout m_descriptorSetLayout;
 } Vulkan_t;
 
 void Vulkan__InitDriver1(Vulkan_t* self);
@@ -100,5 +101,6 @@ void Vulkan__CreateLogicalDeviceAndQueues(Vulkan_t* self);
 void Vulkan__CreateSwapChain(Vulkan_t* self, VkSwapchainKHR oldSwapChain);
 void Vulkan__CreateImageViews(Vulkan_t* self);
 void Vulkan__CreateRenderPass(Vulkan_t* self);
+void Vulkan__CreateDescriptorSetLayout(Vulkan_t* self);
 
 #endif
