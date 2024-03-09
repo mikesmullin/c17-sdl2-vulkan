@@ -116,7 +116,7 @@ int main() {
   Vulkan__CreateCommandPool(&s_Vulkan);
   Vulkan__CreateTextureImage(&s_Vulkan, textureFiles[0]);
   Vulkan__CreateTextureImageView(&s_Vulkan);
-  // Vulkan__CreateTextureSampler(&s_Vulkan);
+  Vulkan__CreateTextureSampler(&s_Vulkan);
   // Vulkan__CreateVertexBuffer(&s_Vulkan, 0, VectorSize(vertices), vertices.data());
   // Vulkan__CreateVertexBuffer(
   //     &s_Vulkan,

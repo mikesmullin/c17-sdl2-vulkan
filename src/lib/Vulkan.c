@@ -1295,3 +1295,33 @@ void Vulkan__CreateTextureImageView(Vulkan_t* self) {
       VK_FORMAT_R8G8B8A8_SRGB,
       &self->m_textureImageView);
 }
+
+void Vulkan__CreateTextureSampler(Vulkan_t* self) {
+  VkPhysicalDeviceProperties properties;
+  vkGetPhysicalDeviceProperties(self->m_physicalDevice, &properties);
+
+  VkSamplerCreateInfo samplerInfo;
+  samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+  samplerInfo.pNext = NULL;
+  samplerInfo.flags = 0;
+  // nearest is best for pixel art, but a pixel shader is even better
+  samplerInfo.magFilter = VK_FILTER_NEAREST;                // VK_FILTER_LINEAR;
+  samplerInfo.minFilter = VK_FILTER_NEAREST;                // VK_FILTER_LINEAR;
+  samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;  // VK_SAMPLER_MIPMAP_MODE_LINEAR;
+  samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  samplerInfo.mipLodBias = 0;
+  samplerInfo.anisotropyEnable = VK_TRUE;
+  samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+  samplerInfo.compareEnable = VK_FALSE;
+  samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+  samplerInfo.minLod = 0;
+  samplerInfo.maxLod = 0;
+  samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+  samplerInfo.unnormalizedCoordinates = VK_FALSE;
+
+  ASSERT(
+      VK_SUCCESS ==
+      vkCreateSampler(self->m_logicalDevice, &samplerInfo, NULL, &self->m_textureSampler))
+}
