@@ -64,8 +64,8 @@ Mesh_t vertices[] = {
     {{-0.5f, 0.5f}},
 };
 
-// TODO: may have to use u16 here
-u8 indices[] = {0, 1, 2, 2, 3, 0};
+// TODO: could use u8 here probably?
+u16 indices[] = {0, 1, 2, 2, 3, 0};
 
 const char* shaderFiles[] = {
     "../assets/shaders/simple_shader.frag.spv",
