@@ -1371,3 +1371,35 @@ void Vulkan__CreateVertexBuffer(Vulkan_t* self, u8 idx, u64 size, const void* in
   vkDestroyBuffer(self->m_logicalDevice, stagingBuffer, NULL);
   vkFreeMemory(self->m_logicalDevice, stagingBufferMemory, NULL);
 }
+
+void Vulkan__CreateIndexBuffer(Vulkan_t* self, u64 size, const void* indata) {
+  VkDeviceSize bufferSize = size;
+
+  VkBuffer stagingBuffer;
+  VkDeviceMemory stagingBufferMemory;
+  Vulkan__CreateBuffer(
+      self,
+      bufferSize,
+      VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+      &stagingBuffer,
+      &stagingBufferMemory);
+
+  void* data;
+  vkMapMemory(self->m_logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
+  memcpy(data, indata, (size_t)bufferSize);
+  vkUnmapMemory(self->m_logicalDevice, stagingBufferMemory);
+
+  Vulkan__CreateBuffer(
+      self,
+      bufferSize,
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+      &self->m_indexBuffer,
+      &self->m_indexBufferMemory);
+
+  Vulkan__CopyBuffer(self, &stagingBuffer, &self->m_indexBuffer, bufferSize);
+
+  vkDestroyBuffer(self->m_logicalDevice, stagingBuffer, NULL);
+  vkFreeMemory(self->m_logicalDevice, stagingBufferMemory, NULL);
+}

@@ -88,6 +88,8 @@ typedef struct {
   VkDeviceMemory m_textureImageMemory;
   VkImageView m_textureImageView;
   VkSampler m_textureSampler;
+  VkBuffer m_indexBuffer;
+  VkDeviceMemory m_indexBufferMemory;
 } Vulkan_t;
 
 void Vulkan__InitDriver1(Vulkan_t* self);
@@ -163,5 +165,6 @@ void Vulkan__CreateImageView(
 void Vulkan__CreateTextureImageView(Vulkan_t* self);
 void Vulkan__CreateTextureSampler(Vulkan_t* self);
 void Vulkan__CreateVertexBuffer(Vulkan_t* self, u8 idx, u64 size, const void* indata);
+void Vulkan__CreateIndexBuffer(Vulkan_t* self, u64 size, const void* indata);
 
 #endif

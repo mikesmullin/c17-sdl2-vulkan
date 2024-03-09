@@ -32,6 +32,9 @@ typedef struct {
   u32 texId;
 } Instance_t;
 
+#define MAX_INSTANCES 255  // TODO: find out how to exceed this limit
+Instance_t instances[MAX_INSTANCES];
+
 Mesh_t vertices[] = {
     {{-0.5f, -0.5f}},
     {{0.5f, -0.5f}},
@@ -128,12 +131,8 @@ int main() {
   Vulkan__CreateTextureImageView(&s_Vulkan);
   Vulkan__CreateTextureSampler(&s_Vulkan);
   Vulkan__CreateVertexBuffer(&s_Vulkan, 0, sizeof(vertices), vertices);
-  // Vulkan__CreateVertexBuffer(
-  //     &s_Vulkan,
-  //     1,
-  //     sizeof(Instance) * MAX_INSTANCES /*VectorSize(instances)*/,
-  //     instances.data());
-  // Vulkan__CreateIndexBuffer(&s_Vulkan, sizeof(indices[0]) * indices.size(), indices.data());
+  Vulkan__CreateVertexBuffer(&s_Vulkan, 1, sizeof(instances), instances);
+  Vulkan__CreateIndexBuffer(&s_Vulkan, sizeof(indices), indices);
   // Vulkan__CreateUniformBuffers(&s_Vulkan, sizeof(ubo_ProjView));
   // Vulkan__CreateDescriptorPool(&s_Vulkan);
   // Vulkan__CreateDescriptorSets(&s_Vulkan);
