@@ -16,6 +16,7 @@
 #define VULKAN_SWAPCHAIN_FORMATS_CAP 10
 #define VULKAN_SWAPCHAIN_PRESENT_MODES_CAP 10
 #define VULKAN_SWAPCHAIN_IMAGES_CAP 3
+#define VULKAN_SHADER_FILE_BUFFER_BYTES_CAP 50 * 1024  // KB
 
 typedef struct {
   bool same;
@@ -77,6 +78,10 @@ typedef struct {
   // pipeline
   VkRenderPass m_renderPass;
   VkDescriptorSetLayout m_descriptorSetLayout;
+  VkBuffer m_vertexBuffers[VULKAN_SWAPCHAIN_IMAGES_CAP];
+  VkDeviceMemory m_vertexBufferMemories[VULKAN_SWAPCHAIN_IMAGES_CAP];
+  VkPipelineLayout m_pipelineLayout;
+  VkPipeline m_graphicsPipeline;
 } Vulkan_t;
 
 void Vulkan__InitDriver1(Vulkan_t* self);
@@ -102,5 +107,18 @@ void Vulkan__CreateSwapChain(Vulkan_t* self, VkSwapchainKHR oldSwapChain);
 void Vulkan__CreateImageViews(Vulkan_t* self);
 void Vulkan__CreateRenderPass(Vulkan_t* self);
 void Vulkan__CreateDescriptorSetLayout(Vulkan_t* self);
-
+void Vulkan__CreateShaderModule(
+    Vulkan_t* self, const u64 size, const char* code, VkShaderModule* shaderModule);
+void Vulkan__DestroyShaderModule(Vulkan_t* self, const VkShaderModule* shaderModule);
+void Vulkan__CreateGraphicsPipeline(
+    Vulkan_t* self,
+    const char* frag_shader,
+    const char* vert_shader,
+    u32 vertexSize,
+    u32 instanceSize,
+    u8 attrCount,
+    u32 bindings[],
+    u32 locations[],
+    u32 formats[],
+    u32 offsets[]);
 #endif

@@ -1,3 +1,4 @@
+#include <cglm/cglm.h>
 #include <stdio.h>
 #include <time.h>
 
@@ -19,6 +20,22 @@ static bool isUBODirty = true;
 
 static Vulkan_t s_Vulkan;
 static Window_t s_Window;
+
+typedef struct {
+  vec2 vertex;
+} Mesh_t;
+
+typedef struct {
+  vec3 pos;
+  vec3 rot;
+  vec3 scale;
+  u32 texId;
+} Instance_t;
+
+const char* shaderFiles[] = {
+    "../assets/shaders/simple_shader.frag.spv",
+    "../assets/shaders/simple_shader.vert.spv",
+};
 
 static void physicsCallback(const f32 deltaTime);
 static void renderCallback(const f32 deltaTime);
@@ -69,6 +86,27 @@ int main() {
   Vulkan__CreateImageViews(&s_Vulkan);
   Vulkan__CreateRenderPass(&s_Vulkan);
   Vulkan__CreateDescriptorSetLayout(&s_Vulkan);
+  Vulkan__CreateGraphicsPipeline(
+      &s_Vulkan,
+      shaderFiles[0],
+      shaderFiles[1],
+      sizeof(Mesh_t),
+      sizeof(Instance_t),
+      5,
+      (u32[5]){0, 1, 1, 1, 1},
+      (u32[5]){0, 1, 2, 3, 4},
+      (u32[5]){
+          VK_FORMAT_R32G32_SFLOAT,
+          VK_FORMAT_R32G32B32_SFLOAT,
+          VK_FORMAT_R32G32B32_SFLOAT,
+          VK_FORMAT_R32G32B32_SFLOAT,
+          VK_FORMAT_R32_UINT},
+      (u32[5]){
+          offsetof(Mesh_t, vertex),
+          offsetof(Instance_t, pos),
+          offsetof(Instance_t, rot),
+          offsetof(Instance_t, scale),
+          offsetof(Instance_t, texId)});
 
   // main loop
   Window__RenderLoop(&s_Window, PHYSICS_FPS, RENDER_FPS, &physicsCallback, &renderCallback);
