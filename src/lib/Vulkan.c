@@ -1510,3 +1510,16 @@ void Vulkan__CreateDescriptorSets(Vulkan_t* self) {
     vkUpdateDescriptorSets(self->m_logicalDevice, descriptorCount, descriptorWrites, 0, NULL);
   }
 }
+
+void Vulkan__CreateCommandBuffers(Vulkan_t* self) {
+  VkCommandBufferAllocateInfo allocInfo;
+  allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+  allocInfo.pNext = NULL;
+  allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+  allocInfo.commandPool = self->m_commandPool;
+  allocInfo.commandBufferCount = self->m_SwapChain__images_count;
+
+  ASSERT(
+      VK_SUCCESS ==
+      vkAllocateCommandBuffers(self->m_logicalDevice, &allocInfo, self->m_commandBuffers))
+}

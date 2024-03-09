@@ -152,7 +152,7 @@ int main() {
   Vulkan__CreateUniformBuffers(&s_Vulkan, sizeof(ubo1));
   Vulkan__CreateDescriptorPool(&s_Vulkan);
   Vulkan__CreateDescriptorSets(&s_Vulkan);
-  // Vulkan__CreateCommandBuffers(&s_Vulkan);
+  Vulkan__CreateCommandBuffers(&s_Vulkan);
   // Vulkan__CreateSyncObjects(&s_Vulkan);
 
   // main loop
