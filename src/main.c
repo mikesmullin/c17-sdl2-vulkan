@@ -153,7 +153,7 @@ int main() {
   Vulkan__CreateDescriptorPool(&s_Vulkan);
   Vulkan__CreateDescriptorSets(&s_Vulkan);
   Vulkan__CreateCommandBuffers(&s_Vulkan);
-  // Vulkan__CreateSyncObjects(&s_Vulkan);
+  Vulkan__CreateSyncObjects(&s_Vulkan);
 
   // main loop
   Window__RenderLoop(&s_Window, PHYSICS_FPS, RENDER_FPS, &physicsCallback, &renderCallback);

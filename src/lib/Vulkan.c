@@ -1523,3 +1523,36 @@ void Vulkan__CreateCommandBuffers(Vulkan_t* self) {
       VK_SUCCESS ==
       vkAllocateCommandBuffers(self->m_logicalDevice, &allocInfo, self->m_commandBuffers))
 }
+
+void Vulkan__CreateSyncObjects(Vulkan_t* self) {
+  VkSemaphoreCreateInfo semaphoreInfo;
+  semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+  semaphoreInfo.pNext = NULL;
+  semaphoreInfo.flags = 0;
+
+  for (u8 i = 0; i < self->m_SwapChain__images_count; i++) {
+    ASSERT(
+        VK_SUCCESS == vkCreateSemaphore(
+                          self->m_logicalDevice,
+                          &semaphoreInfo,
+                          NULL,
+                          &self->m_imageAvailableSemaphores[i]))
+
+    ASSERT(
+        VK_SUCCESS == vkCreateSemaphore(
+                          self->m_logicalDevice,
+                          &semaphoreInfo,
+                          NULL,
+                          &self->m_renderFinishedSemaphores[i]))
+
+    VkFenceCreateInfo fenceInfo;
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceInfo.pNext = NULL;
+    // begin in signaled state; makes loop logic easy on first pass
+    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    ASSERT(
+        VK_SUCCESS ==
+        vkCreateFence(self->m_logicalDevice, &fenceInfo, NULL, &self->m_inFlightFences[i]))
+  }
+}

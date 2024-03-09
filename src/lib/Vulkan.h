@@ -98,6 +98,9 @@ typedef struct {
   VkDescriptorPool m_descriptorPool;
   VkDescriptorSet m_descriptorSets[VULKAN_SWAPCHAIN_IMAGES_CAP];
   VkCommandBuffer m_commandBuffers[VULKAN_SWAPCHAIN_IMAGES_CAP];
+  VkSemaphore m_imageAvailableSemaphores[VULKAN_SWAPCHAIN_IMAGES_CAP];
+  VkSemaphore m_renderFinishedSemaphores[VULKAN_SWAPCHAIN_IMAGES_CAP];
+  VkFence m_inFlightFences[VULKAN_SWAPCHAIN_IMAGES_CAP];
 } Vulkan_t;
 
 void Vulkan__InitDriver1(Vulkan_t* self);
@@ -179,5 +182,6 @@ void Vulkan__UpdateUniformBuffer(Vulkan_t* self, u8 frame, void* ubo);
 void Vulkan__CreateDescriptorPool(Vulkan_t* self);
 void Vulkan__CreateDescriptorSets(Vulkan_t* self);
 void Vulkan__CreateCommandBuffers(Vulkan_t* self);
+void Vulkan__CreateSyncObjects(Vulkan_t* self);
 
 #endif
