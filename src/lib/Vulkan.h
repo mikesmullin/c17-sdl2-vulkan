@@ -162,5 +162,6 @@ void Vulkan__CreateImageView(
     Vulkan_t* self, VkImage* image, VkFormat format, VkImageView* imageView);
 void Vulkan__CreateTextureImageView(Vulkan_t* self);
 void Vulkan__CreateTextureSampler(Vulkan_t* self);
+void Vulkan__CreateVertexBuffer(Vulkan_t* self, u8 idx, u64 size, const void* indata);
 
 #endif
