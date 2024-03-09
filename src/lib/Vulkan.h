@@ -86,6 +86,7 @@ typedef struct {
   VkCommandPool m_commandPool;
   VkImage m_textureImage;
   VkDeviceMemory m_textureImageMemory;
+  VkImageView m_textureImageView;
 } Vulkan_t;
 
 void Vulkan__InitDriver1(Vulkan_t* self);
@@ -156,4 +157,7 @@ void Vulkan__CreateImage(
     VkMemoryPropertyFlags properties,
     VkImage* image,
     VkDeviceMemory* imageMemory);
+void Vulkan__CreateImageView(
+    Vulkan_t* self, VkImage* image, VkFormat format, VkImageView* imageView);
+void Vulkan__CreateTextureImageView(Vulkan_t* self);
 #endif

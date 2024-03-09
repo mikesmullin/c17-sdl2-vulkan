@@ -1268,3 +1268,30 @@ void Vulkan__CreateTextureImage(Vulkan_t* self, const char* file) {
   vkDestroyBuffer(self->m_logicalDevice, stagingBuffer, NULL);
   vkFreeMemory(self->m_logicalDevice, stagingBufferMemory, NULL);
 }
+
+void Vulkan__CreateImageView(
+    Vulkan_t* self, VkImage* image, VkFormat format, VkImageView* imageView) {
+  VkImageViewCreateInfo viewInfo;
+  viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+  viewInfo.pNext = NULL;
+  viewInfo.flags = 0;
+  viewInfo.image = *image;
+  viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+  viewInfo.format = format;
+  viewInfo.components = (VkComponentMapping){0, 0, 0, 0};
+  viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  viewInfo.subresourceRange.baseMipLevel = 0;
+  viewInfo.subresourceRange.levelCount = 1;
+  viewInfo.subresourceRange.baseArrayLayer = 0;
+  viewInfo.subresourceRange.layerCount = 1;
+
+  ASSERT(VK_SUCCESS == vkCreateImageView(self->m_logicalDevice, &viewInfo, NULL, imageView))
+}
+
+void Vulkan__CreateTextureImageView(Vulkan_t* self) {
+  Vulkan__CreateImageView(
+      self,
+      &self->m_textureImage,
+      VK_FORMAT_R8G8B8A8_SRGB,
+      &self->m_textureImageView);
+}
