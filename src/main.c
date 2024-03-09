@@ -37,6 +37,11 @@ const char* shaderFiles[] = {
     "../assets/shaders/simple_shader.vert.spv",
 };
 
+const char* textureFiles[] = {
+    "../assets/textures/roguelikeSheet_transparent.png",
+    "../assets/textures/wood-wall.png",
+};
+
 static void physicsCallback(const f32 deltaTime);
 static void renderCallback(const f32 deltaTime);
 
@@ -109,7 +114,7 @@ int main() {
           offsetof(Instance_t, texId)});
   Vulkan__CreateFrameBuffers(&s_Vulkan);
   Vulkan__CreateCommandPool(&s_Vulkan);
-  // Vulkan__CreateTextureImage(&s_Vulkan, textureFiles[0].c_str());
+  Vulkan__CreateTextureImage(&s_Vulkan, textureFiles[0]);
   // Vulkan__CreateTextureImageView(&s_Vulkan);
   // Vulkan__CreateTextureSampler(&s_Vulkan);
   // Vulkan__CreateVertexBuffer(&s_Vulkan, 0, VectorSize(vertices), vertices.data());

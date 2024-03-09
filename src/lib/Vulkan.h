@@ -84,6 +84,8 @@ typedef struct {
   VkPipelineLayout m_pipelineLayout;
   VkPipeline m_graphicsPipeline;
   VkCommandPool m_commandPool;
+  VkImage m_textureImage;
+  VkDeviceMemory m_textureImageMemory;
 } Vulkan_t;
 
 void Vulkan__InitDriver1(Vulkan_t* self);
@@ -125,4 +127,33 @@ void Vulkan__CreateGraphicsPipeline(
     u32 offsets[]);
 void Vulkan__CreateFrameBuffers(Vulkan_t* self);
 void Vulkan__CreateCommandPool(Vulkan_t* self);
+void Vulkan__CreateBuffer(
+    Vulkan_t* self,
+    VkDeviceSize size,
+    VkBufferUsageFlags usage,
+    VkMemoryPropertyFlags properties,
+    VkBuffer* buffer,
+    VkDeviceMemory* bufferMemory);
+void Vulkan__CreateTextureImage(Vulkan_t* self, const char* file);
+u32 Vulkan__FindMemoryType(Vulkan_t* self, u32 typeFilter, VkMemoryPropertyFlags properties);
+void Vulkan__BeginSingleTimeCommands(Vulkan_t* self, VkCommandBuffer* commandBuffer);
+void Vulkan__EndSingleTimeCommands(Vulkan_t* self, VkCommandBuffer* commandBuffer);
+void Vulkan__TransitionImageLayout(
+    Vulkan_t* self,
+    VkImage* image,
+    VkFormat format,
+    VkImageLayout oldLayout,
+    VkImageLayout newLayout);
+void Vulkan__CopyBufferToImage(
+    Vulkan_t* self, VkBuffer* buffer, VkImage* image, u32 width, u32 height);
+void Vulkan__CreateImage(
+    Vulkan_t* self,
+    uint32_t width,
+    uint32_t height,
+    VkFormat format,
+    VkImageTiling tiling,
+    VkImageUsageFlags usage,
+    VkMemoryPropertyFlags properties,
+    VkImage* image,
+    VkDeviceMemory* imageMemory);
 #endif

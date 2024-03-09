@@ -1,6 +1,8 @@
 #include "Vulkan.h"
 
 #include <cglm/cglm.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 #include <string.h>
 
 #define VOLK_IMPLEMENTATION
@@ -985,4 +987,284 @@ void Vulkan__CreateCommandPool(Vulkan_t* self) {
   ASSERT(
       VK_SUCCESS ==
       vkCreateCommandPool(self->m_logicalDevice, &poolInfo, NULL, &self->m_commandPool))
+}
+
+u32 Vulkan__FindMemoryType(Vulkan_t* self, u32 typeFilter, VkMemoryPropertyFlags properties) {
+  VkPhysicalDeviceMemoryProperties memProperties;
+  vkGetPhysicalDeviceMemoryProperties(self->m_physicalDevice, &memProperties);
+
+  for (u32 i = 0; i < memProperties.memoryTypeCount; i++) {
+    if ((typeFilter & (1 << i)) &&
+        (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+      return i;
+    }
+  }
+
+  ASSERT_CONTEXT(false, "failed to find suitable memory type!");
+}
+
+void Vulkan__CreateBuffer(
+    Vulkan_t* self,
+    VkDeviceSize size,
+    VkBufferUsageFlags usage,
+    VkMemoryPropertyFlags properties,
+    VkBuffer* buffer,
+    VkDeviceMemory* bufferMemory) {
+  VkBufferCreateInfo bufferInfo;
+  bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+  bufferInfo.pNext = NULL;
+  bufferInfo.flags = 0;
+  bufferInfo.size = size;
+  bufferInfo.usage = usage;
+  bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+  ASSERT(VK_SUCCESS == vkCreateBuffer(self->m_logicalDevice, &bufferInfo, NULL, buffer))
+
+  VkMemoryRequirements memRequirements;
+  vkGetBufferMemoryRequirements(self->m_logicalDevice, *buffer, &memRequirements);
+
+  VkMemoryAllocateInfo allocInfo;
+  allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+  allocInfo.pNext = NULL;
+  allocInfo.allocationSize = memRequirements.size;
+  allocInfo.memoryTypeIndex =
+      Vulkan__FindMemoryType(self, memRequirements.memoryTypeBits, properties);
+
+  // TODO: The maximum number of simultaneous memory allocations is limited by the
+  // maxMemoryAllocationCount So when objects on screen become too numerous, create a custom
+  // allocator
+  ASSERT(VK_SUCCESS == vkAllocateMemory(self->m_logicalDevice, &allocInfo, NULL, bufferMemory))
+
+  vkBindBufferMemory(self->m_logicalDevice, *buffer, *bufferMemory, 0);
+}
+
+void Vulkan__CreateImage(
+    Vulkan_t* self,
+    uint32_t width,
+    uint32_t height,
+    VkFormat format,
+    VkImageTiling tiling,
+    VkImageUsageFlags usage,
+    VkMemoryPropertyFlags properties,
+    VkImage* image,
+    VkDeviceMemory* imageMemory) {
+  VkImageCreateInfo imageInfo;
+  imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+  imageInfo.flags = 0;
+  imageInfo.pNext = NULL;
+  imageInfo.imageType = VK_IMAGE_TYPE_2D;
+  imageInfo.extent.width = width;
+  imageInfo.extent.height = height;
+  imageInfo.extent.depth = 1;
+  imageInfo.mipLevels = 1;
+  imageInfo.arrayLayers = 1;
+  imageInfo.format = format;
+  imageInfo.tiling = tiling;
+  imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  imageInfo.usage = usage;
+  imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+  imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+  ASSERT(VK_SUCCESS == vkCreateImage(self->m_logicalDevice, &imageInfo, NULL, image))
+
+  VkMemoryRequirements memRequirements;
+  vkGetImageMemoryRequirements(self->m_logicalDevice, *image, &memRequirements);
+
+  VkMemoryAllocateInfo allocInfo;
+  allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+  allocInfo.pNext = NULL;
+  allocInfo.allocationSize = memRequirements.size;
+  allocInfo.memoryTypeIndex =
+      Vulkan__FindMemoryType(self, memRequirements.memoryTypeBits, properties);
+
+  ASSERT(VK_SUCCESS == vkAllocateMemory(self->m_logicalDevice, &allocInfo, NULL, imageMemory))
+
+  vkBindImageMemory(self->m_logicalDevice, *image, *imageMemory, 0);
+}
+
+void Vulkan__BeginSingleTimeCommands(Vulkan_t* self, VkCommandBuffer* commandBuffer) {
+  VkCommandBufferAllocateInfo allocInfo;
+  allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+  allocInfo.pNext = NULL;
+  allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+  allocInfo.commandPool = self->m_commandPool;
+  allocInfo.commandBufferCount = 1;
+
+  vkAllocateCommandBuffers(self->m_logicalDevice, &allocInfo, commandBuffer);
+
+  VkCommandBufferBeginInfo beginInfo;
+  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  beginInfo.pNext = NULL;
+  beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+  ASSERT(VK_SUCCESS == vkBeginCommandBuffer(*commandBuffer, &beginInfo))
+}
+
+void Vulkan__EndSingleTimeCommands(Vulkan_t* self, VkCommandBuffer* commandBuffer) {
+  vkEndCommandBuffer(*commandBuffer);
+
+  VkSubmitInfo submitInfo;
+  submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  submitInfo.pNext = NULL;
+  submitInfo.waitSemaphoreCount = 0;
+  submitInfo.pWaitSemaphores = VK_NULL_HANDLE;
+  submitInfo.pWaitDstStageMask = 0;
+  submitInfo.commandBufferCount = 1;
+  submitInfo.pCommandBuffers = commandBuffer;
+  submitInfo.signalSemaphoreCount = 0;
+  submitInfo.pSignalSemaphores = VK_NULL_HANDLE;
+
+  ASSERT(
+      VK_SUCCESS ==
+      vkQueueSubmit(self->m_SwapChain__queues.graphics__queue, 1, &submitInfo, VK_NULL_HANDLE))
+  ASSERT(VK_SUCCESS == vkQueueWaitIdle(self->m_SwapChain__queues.graphics__queue))
+
+  vkFreeCommandBuffers(self->m_logicalDevice, self->m_commandPool, 1, commandBuffer);
+}
+
+void Vulkan__TransitionImageLayout(
+    Vulkan_t* self,
+    VkImage* image,
+    VkFormat format,
+    VkImageLayout oldLayout,
+    VkImageLayout newLayout) {
+  VkCommandBuffer commandBuffer;
+  Vulkan__BeginSingleTimeCommands(self, &commandBuffer);
+
+  VkImageMemoryBarrier barrier[] = {{
+      .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+      .oldLayout = oldLayout,
+      .newLayout = newLayout,
+      .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+      .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+      .image = *image,
+      .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+      .subresourceRange.baseMipLevel = 0,
+      .subresourceRange.levelCount = 1,
+      .subresourceRange.baseArrayLayer = 0,
+      .subresourceRange.layerCount = 1,
+  }};
+
+  VkPipelineStageFlags sourceStage;
+  VkPipelineStageFlags destinationStage;
+
+  if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+    barrier[0].srcAccessMask = 0;
+    barrier[0].dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+    sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+  } else if (
+      oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
+      newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+    barrier[0].srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    barrier[0].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+    sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+  } else {
+    ASSERT_CONTEXT(false, "unsupported layout transition!")
+  }
+
+  vkCmdPipelineBarrier(
+      commandBuffer,
+      sourceStage,
+      destinationStage,
+      0,
+      0,
+      NULL,
+      0,
+      NULL,
+      1,
+      barrier);
+
+  Vulkan__EndSingleTimeCommands(self, &commandBuffer);
+}
+
+void Vulkan__CopyBufferToImage(
+    Vulkan_t* self, VkBuffer* buffer, VkImage* image, u32 width, u32 height) {
+  VkCommandBuffer commandBuffer;
+  Vulkan__BeginSingleTimeCommands(self, &commandBuffer);
+
+  VkBufferImageCopy region;
+  region.bufferOffset = 0;
+  region.bufferRowLength = 0;
+  region.bufferImageHeight = 0;
+  region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  region.imageSubresource.mipLevel = 0;
+  region.imageSubresource.baseArrayLayer = 0;
+  region.imageSubresource.layerCount = 1;
+  region.imageOffset = (VkOffset3D){0, 0, 0};
+  region.imageExtent = (VkExtent3D){width, height, 1};
+
+  vkCmdCopyBufferToImage(
+      commandBuffer,
+      *buffer,
+      *image,
+      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+      1,
+      &region);
+
+  Vulkan__EndSingleTimeCommands(self, &commandBuffer);
+}
+
+/**
+ * Load an image from disk. Queue it to Vulkan -> Buffer -> Image.
+ */
+void Vulkan__CreateTextureImage(Vulkan_t* self, const char* file) {
+  int texWidth, texHeight, texChannels;
+  stbi_uc* pixels = stbi_load(file, &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+  VkDeviceSize imageSize = texWidth * texHeight * 4;
+
+  ASSERT_CONTEXT(pixels, "failed to load texture image!")
+
+  VkBuffer stagingBuffer;
+  VkDeviceMemory stagingBufferMemory;
+  Vulkan__CreateBuffer(
+      self,
+      imageSize,
+      VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+      &stagingBuffer,
+      &stagingBufferMemory);
+
+  void* data;
+  vkMapMemory(self->m_logicalDevice, stagingBufferMemory, 0, imageSize, 0, &data);
+  memcpy(data, pixels, (size_t)(imageSize));
+  vkUnmapMemory(self->m_logicalDevice, stagingBufferMemory);
+
+  stbi_image_free(pixels);
+
+  Vulkan__CreateImage(
+      self,
+      texWidth,
+      texHeight,
+      VK_FORMAT_R8G8B8A8_SRGB,
+      VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+      &self->m_textureImage,
+      &self->m_textureImageMemory);
+
+  Vulkan__TransitionImageLayout(
+      self,
+      &self->m_textureImage,
+      VK_FORMAT_R8G8B8A8_SRGB,
+      VK_IMAGE_LAYOUT_UNDEFINED,
+      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+  Vulkan__CopyBufferToImage(
+      self,
+      &stagingBuffer,
+      &self->m_textureImage,
+      (u32)(texWidth),
+      (u32)(texHeight));
+  Vulkan__TransitionImageLayout(
+      self,
+      &self->m_textureImage,
+      VK_FORMAT_R8G8B8A8_SRGB,
+      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+  vkDestroyBuffer(self->m_logicalDevice, stagingBuffer, NULL);
+  vkFreeMemory(self->m_logicalDevice, stagingBufferMemory, NULL);
 }

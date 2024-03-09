@@ -48,7 +48,7 @@ else if (isMac) {
 }
 // CPP_COMPILER_ARGS.push(`-I${rel(workspaceFolder, 'vendor', 'glm-0.9.9.8')}`);
 // CPP_COMPILER_ARGS.push(`-I${rel(workspaceFolder, 'vendor', 'tinyobjloader', 'include')}`);
-// CPP_COMPILER_ARGS.push(`-I${rel(workspaceFolder, 'vendor', 'stb')}`);
+C_COMPILER_ARGS.push(`-I${rel(workspaceFolder, 'vendor', 'stb-2.29', 'include')}`);
 C_COMPILER_ARGS.push(`-I${rel(workspaceFolder, 'vendor', 'cmixer-076653c', 'include')}`);
 const LINKER_LIBS = [];
 if (isWin) {
