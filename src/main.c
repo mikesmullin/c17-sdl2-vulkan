@@ -107,6 +107,23 @@ int main() {
           offsetof(Instance_t, rot),
           offsetof(Instance_t, scale),
           offsetof(Instance_t, texId)});
+  Vulkan__CreateFrameBuffers(&s_Vulkan);
+  // Vulkan__CreateCommandPool(&s_Vulkan);
+  // Vulkan__CreateTextureImage(&s_Vulkan, textureFiles[0].c_str());
+  // Vulkan__CreateTextureImageView(&s_Vulkan);
+  // Vulkan__CreateTextureSampler(&s_Vulkan);
+  // Vulkan__CreateVertexBuffer(&s_Vulkan, 0, VectorSize(vertices), vertices.data());
+  // Vulkan__CreateVertexBuffer(
+  //     &s_Vulkan,
+  //     1,
+  //     sizeof(Instance) * MAX_INSTANCES /*VectorSize(instances)*/,
+  //     instances.data());
+  // Vulkan__CreateIndexBuffer(&s_Vulkan, sizeof(indices[0]) * indices.size(), indices.data());
+  // Vulkan__CreateUniformBuffers(&s_Vulkan, sizeof(ubo_ProjView));
+  // Vulkan__CreateDescriptorPool(&s_Vulkan);
+  // Vulkan__CreateDescriptorSets(&s_Vulkan);
+  // Vulkan__CreateCommandBuffers(&s_Vulkan);
+  // Vulkan__CreateSyncObjects(&s_Vulkan);
 
   // main loop
   Window__RenderLoop(&s_Window, PHYSICS_FPS, RENDER_FPS, &physicsCallback, &renderCallback);

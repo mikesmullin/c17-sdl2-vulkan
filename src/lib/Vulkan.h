@@ -74,6 +74,7 @@ typedef struct {
   u32 m_SwapChain__presentModes_count;
   VkPresentModeKHR m_SwapChain__presentModes[VULKAN_SWAPCHAIN_PRESENT_MODES_CAP];
   Vulkan__PhysicalDeviceQueue_t m_SwapChain__queues;
+  VkFramebuffer m_SwapChain__framebuffers[VULKAN_SWAPCHAIN_IMAGES_CAP];
 
   // pipeline
   VkRenderPass m_renderPass;
@@ -121,4 +122,5 @@ void Vulkan__CreateGraphicsPipeline(
     u32 locations[],
     u32 formats[],
     u32 offsets[]);
+void Vulkan__CreateFrameBuffers(Vulkan_t* self);
 #endif

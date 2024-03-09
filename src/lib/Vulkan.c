@@ -950,3 +950,27 @@ void Vulkan__CreateGraphicsPipeline(
   Vulkan__DestroyShaderModule(self, &vertShaderModule);
   Vulkan__DestroyShaderModule(self, &fragShaderModule);
 }
+
+void Vulkan__CreateFrameBuffers(Vulkan_t* self) {
+  for (size_t i = 0; i < self->m_SwapChain__images_count; i++) {
+    VkImageView attachments[] = {self->m_SwapChain__imageViews[i]};
+
+    VkFramebufferCreateInfo framebufferInfo;
+    framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    framebufferInfo.pNext = NULL;
+    framebufferInfo.renderPass = self->m_renderPass;
+    // TODO: couldn't/shouldn't we have one framebuffer, with two attachments?
+    framebufferInfo.attachmentCount = 1;
+    framebufferInfo.pAttachments = attachments;
+    framebufferInfo.width = self->m_SwapChain__extent.width;
+    framebufferInfo.height = self->m_SwapChain__extent.height;
+    framebufferInfo.layers = 1;
+
+    ASSERT(
+        VK_SUCCESS == vkCreateFramebuffer(
+                          self->m_logicalDevice,
+                          &framebufferInfo,
+                          NULL,
+                          &self->m_SwapChain__framebuffers[i]))
+  }
+}
