@@ -10,6 +10,7 @@
 
 #define ASPECT_SQUARE 1.0f / 1
 
+#define VULKAN_DESIRED_SWAPCHAIN_IMAGES_COUNT 2
 #define VULKAN_REQUIRED_VALIDATION_LAYERS_CAP 5
 #define VULKAN_REQUIRED_DRIVER_EXTENSIONS_CAP 5
 #define VULKAN_REQUIRED_PHYSICAL_DEVICE_EXTENSIONS_CAP 5
@@ -94,6 +95,7 @@ typedef struct {
   u32 m_uniformBufferLengths[VULKAN_SWAPCHAIN_IMAGES_CAP];
   VkDeviceMemory m_uniformBuffersMemory[VULKAN_SWAPCHAIN_IMAGES_CAP];
   void* m_uniformBuffersMapped[VULKAN_SWAPCHAIN_IMAGES_CAP];
+  VkDescriptorPool m_descriptorPool;
 } Vulkan_t;
 
 void Vulkan__InitDriver1(Vulkan_t* self);
@@ -172,5 +174,6 @@ void Vulkan__CreateVertexBuffer(Vulkan_t* self, u8 idx, u64 size, const void* in
 void Vulkan__CreateIndexBuffer(Vulkan_t* self, u64 size, const void* indata);
 void Vulkan__CreateUniformBuffers(Vulkan_t* self, const unsigned int length);
 void Vulkan__UpdateUniformBuffer(Vulkan_t* self, u8 frame, void* ubo);
+void Vulkan__CreateDescriptorPool(Vulkan_t* self);
 
 #endif

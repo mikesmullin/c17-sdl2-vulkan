@@ -150,7 +150,7 @@ int main() {
   Vulkan__CreateIndexBuffer(&s_Vulkan, sizeof(indices), indices);
   ubo_ProjView_t ubo1;  // projection x view matrices
   Vulkan__CreateUniformBuffers(&s_Vulkan, sizeof(ubo1));
-  // Vulkan__CreateDescriptorPool(&s_Vulkan);
+  Vulkan__CreateDescriptorPool(&s_Vulkan);
   // Vulkan__CreateDescriptorSets(&s_Vulkan);
   // Vulkan__CreateCommandBuffers(&s_Vulkan);
   // Vulkan__CreateSyncObjects(&s_Vulkan);

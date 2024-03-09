@@ -341,7 +341,7 @@ void Vulkan__CreateLogicalDeviceAndQueues(Vulkan_t* self) {
       queueFamilies);
 
   // list all queue families found on the current physical device
-  LOG_DEBUGF("device queue families:");
+  LOG_INFOF("device queue families:");
   for (u8 i = 0; i < queueFamilyCount; i++) {
     const bool graphics = queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT;
     const bool compute = queueFamilies[i].queueFlags & VK_QUEUE_COMPUTE_BIT;
@@ -571,10 +571,12 @@ void Vulkan__CreateSwapChain(Vulkan_t* self, VkSwapchainKHR priorSwapChain) {
   extent.width = self->m_bufferWidth;
   extent.height = self->m_bufferHeight;
 
-  self->m_SwapChain__images_count = MATH_CLAMP(
-      self->m_SwapChain__capabilities.minImageCount + 1,
-      self->m_SwapChain__capabilities.minImageCount,
-      self->m_SwapChain__capabilities.maxImageCount);
+  self->m_SwapChain__images_count = MATH_MIN(
+      VULKAN_DESIRED_SWAPCHAIN_IMAGES_COUNT,
+      MATH_CLAMP(
+          self->m_SwapChain__capabilities.minImageCount + 1,
+          self->m_SwapChain__capabilities.minImageCount,
+          self->m_SwapChain__capabilities.maxImageCount));
 
   VkSwapchainCreateInfoKHR createInfo;
   createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -1430,4 +1432,29 @@ void Vulkan__CreateUniformBuffers(Vulkan_t* self, const unsigned int length) {
 
 void Vulkan__UpdateUniformBuffer(Vulkan_t* self, u8 frame, void* ubo) {
   memcpy(self->m_uniformBuffersMapped[frame], ubo, self->m_uniformBufferLengths[frame]);
+}
+
+void Vulkan__CreateDescriptorPool(Vulkan_t* self) {
+  VkDescriptorPoolSize poolSizes[] = {
+      {
+          .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+          .descriptorCount = (u32)(self->m_SwapChain__images_count),
+      },
+      {
+          .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+          .descriptorCount = (u32)(self->m_SwapChain__images_count),
+      },
+  };
+
+  VkDescriptorPoolCreateInfo poolInfo;
+  poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+  poolInfo.pNext = NULL;
+  poolInfo.flags = 0;
+  poolInfo.maxSets = (u32)(self->m_SwapChain__images_count);
+  poolInfo.poolSizeCount = (u32)(self->m_SwapChain__images_count);
+  poolInfo.pPoolSizes = poolSizes;
+
+  ASSERT(
+      VK_SUCCESS ==
+      vkCreateDescriptorPool(self->m_logicalDevice, &poolInfo, NULL, &self->m_descriptorPool))
 }
