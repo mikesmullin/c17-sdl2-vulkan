@@ -167,7 +167,7 @@ void Window__RenderLoop(
       // }
 
       // render
-      // Vulkan__AwaitNextFrame(&self->vulkan);
+      Vulkan__AwaitNextFrame(self->vulkan);
 
       // currentTime = std::chrono::high_resolution_clock::now();
       // deltaTime =
@@ -176,7 +176,7 @@ void Window__RenderLoop(
       // lastRender = currentTime;
 
       renderCallback(deltaTime);
-      // v.DrawFrame();
+      Vulkan__DrawFrame(self->vulkan);
 
       // frameCount++;
       // if (frameCount >= renderFps) {

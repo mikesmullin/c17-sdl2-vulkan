@@ -427,6 +427,8 @@ void Vulkan__CreateLogicalDeviceAndQueues(Vulkan_t* self) {
   {
     VkDeviceQueueCreateInfo createInfo;
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    createInfo.pNext = NULL;
+    createInfo.flags = 0;
     createInfo.queueFamilyIndex = self->m_SwapChain__queues.graphics__index,
     createInfo.queueCount = 1;
     createInfo.pQueuePriorities = &queuePriority;
@@ -435,6 +437,8 @@ void Vulkan__CreateLogicalDeviceAndQueues(Vulkan_t* self) {
   if (!self->m_SwapChain__queues.same) {
     VkDeviceQueueCreateInfo createInfo;
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    createInfo.pNext = NULL;
+    createInfo.flags = 0;
     createInfo.queueFamilyIndex = self->m_SwapChain__queues.present__index,
     createInfo.queueCount = 1;
     createInfo.pQueuePriorities = &queuePriority;
@@ -536,7 +540,7 @@ void Vulkan__CreateLogicalDeviceAndQueues(Vulkan_t* self) {
   }
 }
 
-void Vulkan__CreateSwapChain(Vulkan_t* self, VkSwapchainKHR priorSwapChain) {
+void Vulkan__CreateSwapChain(Vulkan_t* self, bool hadPriorSwapChain) {
   bool found1 = false;
   VkSurfaceFormatKHR format;
 
@@ -580,6 +584,8 @@ void Vulkan__CreateSwapChain(Vulkan_t* self, VkSwapchainKHR priorSwapChain) {
 
   VkSwapchainCreateInfoKHR createInfo;
   createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+  createInfo.pNext = NULL;
+  createInfo.flags = 0;
   createInfo.surface = self->m_surface;
   createInfo.minImageCount = self->m_SwapChain__images_count;
   createInfo.imageFormat = format.format;
@@ -604,7 +610,7 @@ void Vulkan__CreateSwapChain(Vulkan_t* self, VkSwapchainKHR priorSwapChain) {
   createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
   createInfo.presentMode = mode;
   createInfo.clipped = VK_TRUE;
-  createInfo.oldSwapchain = (NULL == priorSwapChain ? VK_NULL_HANDLE : priorSwapChain);
+  createInfo.oldSwapchain = NULL;  // hadPriorSwapChain ? self->m_swapChain : NULL;
 
   ASSERT(
       VK_SUCCESS ==
@@ -633,7 +639,7 @@ void Vulkan__CreateSwapChain(Vulkan_t* self, VkSwapchainKHR priorSwapChain) {
 
   LOG_INFOF(
       "swap chain %screated. width %u height %u imageCount %u",
-      (NULL == priorSwapChain ? "" : "re"),
+      (hadPriorSwapChain ? "" : "re"),
       extent.width,
       extent.height,
       receivedImageCount);
@@ -643,6 +649,8 @@ void Vulkan__CreateImageViews(Vulkan_t* self) {
   for (u8 i = 0; i < self->m_SwapChain__images_count; i++) {
     VkImageViewCreateInfo createInfo;
     createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    createInfo.pNext = NULL;
+    createInfo.flags = 0;
     createInfo.image = self->m_SwapChain__images[i];
     createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
     createInfo.format = self->m_SwapChain__imageFormat;
@@ -687,8 +695,7 @@ void Vulkan__CreateRenderPass(Vulkan_t* self) {
 
   VkSubpassDescription subpass;
   {
-    VkSubpassDescriptionFlags flags;
-    subpass.flags = flags;
+    subpass.flags = 0;
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass.inputAttachmentCount = 0;
     subpass.pInputAttachments = NULL;
@@ -707,6 +714,7 @@ void Vulkan__CreateRenderPass(Vulkan_t* self) {
   dependency.srcAccessMask = 0;
   dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
   dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+  dependency.dependencyFlags = 0;
 
   VkRenderPassCreateInfo renderPassInfo;
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -746,9 +754,9 @@ void Vulkan__CreateDescriptorSetLayout(Vulkan_t* self) {
   bindings[1] = samplerLayoutBinding;
 
   VkDescriptorSetLayoutCreateInfo layoutInfo;
-  VkDescriptorSetLayoutCreateFlags flags;
-  layoutInfo.flags = flags;
   layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+  layoutInfo.pNext = NULL;
+  layoutInfo.flags = 0;
   layoutInfo.bindingCount = bindingsCount;
   layoutInfo.pBindings = bindings;
 
@@ -962,6 +970,7 @@ void Vulkan__CreateFrameBuffers(Vulkan_t* self) {
     VkFramebufferCreateInfo framebufferInfo;
     framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     framebufferInfo.pNext = NULL;
+    framebufferInfo.flags = 0;
     framebufferInfo.renderPass = self->m_renderPass;
     // TODO: couldn't/shouldn't we have one framebuffer, with two attachments?
     framebufferInfo.attachmentCount = 1;
@@ -1105,20 +1114,23 @@ void Vulkan__BeginSingleTimeCommands(Vulkan_t* self, VkCommandBuffer* commandBuf
 void Vulkan__EndSingleTimeCommands(Vulkan_t* self, VkCommandBuffer* commandBuffer) {
   vkEndCommandBuffer(*commandBuffer);
 
-  VkSubmitInfo submitInfo;
-  submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  submitInfo.pNext = NULL;
-  submitInfo.waitSemaphoreCount = 0;
-  submitInfo.pWaitSemaphores = VK_NULL_HANDLE;
-  submitInfo.pWaitDstStageMask = 0;
-  submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers = commandBuffer;
-  submitInfo.signalSemaphoreCount = 0;
-  submitInfo.pSignalSemaphores = VK_NULL_HANDLE;
+  VkSubmitInfo submitInfo[] = {
+      {
+          .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+          .pNext = NULL,
+          .waitSemaphoreCount = 0,
+          .pWaitSemaphores = VK_NULL_HANDLE,
+          .pWaitDstStageMask = 0,
+          .commandBufferCount = 1,
+          .pCommandBuffers = commandBuffer,
+          .signalSemaphoreCount = 0,
+          .pSignalSemaphores = VK_NULL_HANDLE,
+      },
+  };
 
   ASSERT(
       VK_SUCCESS ==
-      vkQueueSubmit(self->m_SwapChain__queues.graphics__queue, 1, &submitInfo, VK_NULL_HANDLE))
+      vkQueueSubmit(self->m_SwapChain__queues.graphics__queue, 1, submitInfo, VK_NULL_HANDLE))
   ASSERT(VK_SUCCESS == vkQueueWaitIdle(self->m_SwapChain__queues.graphics__queue))
 
   vkFreeCommandBuffers(self->m_logicalDevice, self->m_commandPool, 1, commandBuffer);
@@ -1280,7 +1292,10 @@ void Vulkan__CreateImageView(
   viewInfo.image = *image;
   viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
   viewInfo.format = format;
-  viewInfo.components = (VkComponentMapping){0, 0, 0, 0};
+  viewInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+  viewInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+  viewInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+  viewInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
   viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
   viewInfo.subresourceRange.baseMipLevel = 0;
   viewInfo.subresourceRange.levelCount = 1;
@@ -1367,6 +1382,30 @@ void Vulkan__CreateVertexBuffer(Vulkan_t* self, u8 idx, u64 size, const void* in
       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
       &self->m_vertexBuffers[idx],
       &self->m_vertexBufferMemories[idx]);
+
+  Vulkan__CopyBuffer(self, &stagingBuffer, &self->m_vertexBuffers[idx], bufferSize);
+
+  vkDestroyBuffer(self->m_logicalDevice, stagingBuffer, NULL);
+  vkFreeMemory(self->m_logicalDevice, stagingBufferMemory, NULL);
+}
+
+void Vulkan__UpdateVertexBuffer(Vulkan_t* self, u8 idx, u64 size, const void* indata) {
+  VkDeviceSize bufferSize = size;
+
+  VkBuffer stagingBuffer;
+  VkDeviceMemory stagingBufferMemory;
+  Vulkan__CreateBuffer(
+      self,
+      bufferSize,
+      VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+      &stagingBuffer,
+      &stagingBufferMemory);
+
+  void* data;
+  vkMapMemory(self->m_logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
+  memcpy(data, indata, (size_t)bufferSize);
+  vkUnmapMemory(self->m_logicalDevice, stagingBufferMemory);
 
   Vulkan__CopyBuffer(self, &stagingBuffer, &self->m_vertexBuffers[idx], bufferSize);
 
@@ -1554,5 +1593,276 @@ void Vulkan__CreateSyncObjects(Vulkan_t* self) {
     ASSERT(
         VK_SUCCESS ==
         vkCreateFence(self->m_logicalDevice, &fenceInfo, NULL, &self->m_inFlightFences[i]))
+  }
+}
+
+void Vulkan__DeviceWaitIdle(Vulkan_t* self) {
+  vkDeviceWaitIdle(self->m_logicalDevice);
+}
+
+void Vulkan__CleanupSwapChain(Vulkan_t* self) {
+  if (self->m_instance && self->m_logicalDevice && self->m_swapChain) {
+    for (u8 i = 0; i < self->m_SwapChain__images_count; i++) {
+      vkDestroyFramebuffer(self->m_logicalDevice, self->m_SwapChain__framebuffers[i], NULL);
+      vkDestroyImageView(self->m_logicalDevice, self->m_SwapChain__imageViews[i], NULL);
+    }
+
+    vkDestroySwapchainKHR(self->m_logicalDevice, self->m_swapChain, NULL);
+  }
+}
+
+void Vulkan__RecreateSwapChain(Vulkan_t* self) {
+  // TODO: the disadvantage of this approach is that we need to stop all rendering before creating
+  // the new swap chain. It is possible to create a new swap chain while drawing commands on an
+  // image from the old swap chain are still in-flight.
+
+  Vulkan__DeviceWaitIdle(self);
+
+  Vulkan__CleanupSwapChain(self);
+
+  Vulkan__CreateSwapChain(self, true);
+  Vulkan__CreateImageViews(self);
+  Vulkan__CreateFrameBuffers(self);
+}
+
+void Vulkan__AwaitNextFrame(Vulkan_t* self) {
+  ASSERT(
+      VK_SUCCESS == vkWaitForFences(
+                        self->m_logicalDevice,
+                        1,
+                        &self->m_inFlightFences[self->m_currentFrame],
+                        VK_TRUE,
+                        UINT64_MAX))
+
+  VkResult result = vkAcquireNextImageKHR(
+      self->m_logicalDevice,
+      self->m_swapChain,
+      UINT64_MAX,
+      self->m_imageAvailableSemaphores[self->m_currentFrame],
+      VK_NULL_HANDLE,
+      &self->m_imageIndex);
+
+  // detect window surface changed (ie. resized, color depth)
+  if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+    // If the swap chain turns out to be out of date when attempting to acquire an image,
+    // then it is no longer possible to present to it.
+    // Therefore we should immediately recreate the swap chain
+    Vulkan__RecreateSwapChain(self);
+    // and try again in the next drawFrame call.
+    return;
+  }
+  ASSERT_CONTEXT(result == VK_SUCCESS, "vkAcquireNextImageKHR failed.")
+}
+
+void Vulkan__RecordCommandBuffer(Vulkan_t* self, VkCommandBuffer* commandBuffer, u32 imageIndex) {
+  VkCommandBufferBeginInfo beginInfo;
+  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  beginInfo.flags = 0;
+  beginInfo.pInheritanceInfo = NULL;
+
+  ASSERT(VK_SUCCESS == vkBeginCommandBuffer(*commandBuffer, &beginInfo))
+
+  VkRenderPassBeginInfo renderPassInfo;
+  renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+  renderPassInfo.pNext = NULL;
+  renderPassInfo.renderPass = self->m_renderPass;
+  renderPassInfo.framebuffer = self->m_SwapChain__framebuffers[imageIndex];
+  renderPassInfo.renderArea.offset = (VkOffset2D){0, 0};
+  renderPassInfo.renderArea.extent = self->m_SwapChain__extent;
+  VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+  renderPassInfo.clearValueCount = 1;
+  renderPassInfo.pClearValues = &clearColor;
+  vkCmdBeginRenderPass(*commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+  vkCmdBindPipeline(*commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, self->m_graphicsPipeline);
+
+  VkDeviceSize offsets[self->m_SwapChain__images_count];
+  for (u8 i = 0; i < self->m_SwapChain__images_count; i++) {
+    offsets[i] = 0;
+  }
+  vkCmdBindVertexBuffers(
+      *commandBuffer,
+      0,
+      self->m_SwapChain__images_count,
+      self->m_vertexBuffers,
+      offsets);
+  vkCmdBindIndexBuffer(*commandBuffer, self->m_indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+
+  VkViewport viewport;
+  viewport.x = (f32)(self->m_viewportX);
+  viewport.y = (f32)(self->m_viewportY);
+  viewport.width = (f32)(self->m_viewportWidth);
+  viewport.height = (f32)(self->m_viewportHeight);
+  viewport.minDepth = 0.0f;
+  viewport.maxDepth = 1.0f;
+  vkCmdSetViewport(*commandBuffer, 0, 1, &viewport);
+
+  VkRect2D scissor;
+  scissor.offset = (VkOffset2D){0, 0};
+  scissor.extent = self->m_SwapChain__extent;
+  vkCmdSetScissor(*commandBuffer, 0, 1, &scissor);
+
+  vkCmdBindDescriptorSets(
+      *commandBuffer,
+      VK_PIPELINE_BIND_POINT_GRAPHICS,
+      self->m_pipelineLayout,
+      0,
+      1,
+      &self->m_descriptorSets[self->m_currentFrame],
+      0,
+      NULL);
+
+  vkCmdDrawIndexed(*commandBuffer, self->m_drawIndexCount, self->m_instanceCount, 0, 0, 0);
+
+  vkCmdEndRenderPass(*commandBuffer);
+
+  ASSERT(VK_SUCCESS == vkEndCommandBuffer(*commandBuffer))
+}
+
+void Vulkan__DrawFrame(Vulkan_t* self) {
+  // NOTICE: Fence will deadlock if waiting on an empty work queue.
+  // Therefore, we only reset the fence just prior to submitting work.
+  vkResetFences(self->m_logicalDevice, 1, &self->m_inFlightFences[self->m_currentFrame]);
+
+  ASSERT(VK_SUCCESS == vkResetCommandBuffer(self->m_commandBuffers[self->m_currentFrame], 0))
+
+  Vulkan__RecordCommandBuffer(
+      self,
+      &self->m_commandBuffers[self->m_currentFrame],
+      self->m_imageIndex);
+
+  VkSubmitInfo submitInfo;
+  submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  submitInfo.pNext = NULL;
+
+  VkSemaphore waitSemaphores[] = {self->m_imageAvailableSemaphores[self->m_currentFrame]};
+  VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+  submitInfo.waitSemaphoreCount = 1;
+  submitInfo.pWaitSemaphores = waitSemaphores;
+  submitInfo.pWaitDstStageMask = waitStages;
+  submitInfo.commandBufferCount = 1;
+  submitInfo.pCommandBuffers = &self->m_commandBuffers[self->m_currentFrame];
+
+  VkSemaphore signalSemaphores[] = {self->m_renderFinishedSemaphores[self->m_currentFrame]};
+  submitInfo.signalSemaphoreCount = 1;
+  submitInfo.pSignalSemaphores = signalSemaphores;
+
+  ASSERT(
+      VK_SUCCESS == vkQueueSubmit(
+                        self->m_SwapChain__queues.graphics__queue,
+                        1,
+                        &submitInfo,
+                        self->m_inFlightFences[self->m_currentFrame]))
+
+  VkPresentInfoKHR presentInfo;
+  presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+  presentInfo.pNext = NULL;
+  presentInfo.waitSemaphoreCount = 1;
+  presentInfo.pWaitSemaphores = signalSemaphores;
+
+  VkSwapchainKHR swapChains[] = {self->m_swapChain};
+  presentInfo.swapchainCount = 1;
+  presentInfo.pSwapchains = swapChains;
+  presentInfo.pImageIndices = &self->m_imageIndex;
+  presentInfo.pResults = NULL;
+
+  VkQueue queue;
+  if (self->m_SwapChain__queues.same) {
+    queue = self->m_SwapChain__queues.graphics__queue;
+  } else {
+    queue = self->m_SwapChain__queues.present__queue;
+  }
+
+  VkResult result2 = vkQueuePresentKHR(queue, &presentInfo);
+  if (result2 == VK_ERROR_OUT_OF_DATE_KHR || result2 == VK_SUBOPTIMAL_KHR ||
+      self->m_framebufferResized) {
+    self->m_framebufferResized = false;
+    Vulkan__RecreateSwapChain(self);
+  } else if (result2 != VK_SUCCESS) {
+    ASSERT_CONTEXT(
+        result2 == VK_SUCCESS,
+        "vkQueuePresentKHR failed. same: %d",
+        self->m_SwapChain__queues.same)
+  }
+
+  self->m_currentFrame = (self->m_currentFrame + 1) % self->m_SwapChain__images_count;
+}
+
+void Vulkan__Cleanup(Vulkan_t* self) {
+  LOG_INFOF("shutting down Vulkan.");
+
+  if (self->m_instance) {
+    if (self->m_logicalDevice) {
+      Vulkan__CleanupSwapChain(self);
+
+      vkDestroySampler(self->m_logicalDevice, self->m_textureSampler, NULL);
+      vkDestroyImageView(self->m_logicalDevice, self->m_textureImageView, NULL);
+
+      vkDestroyImage(self->m_logicalDevice, self->m_textureImage, NULL);
+      vkFreeMemory(self->m_logicalDevice, self->m_textureImageMemory, NULL);
+
+      if (self->m_descriptorPool) {
+        vkDestroyDescriptorPool(self->m_logicalDevice, self->m_descriptorPool, NULL);
+      }
+
+      for (u8 i = 0; i < self->m_SwapChain__images_count; i++) {
+        vkDestroyBuffer(self->m_logicalDevice, self->m_uniformBuffers[i], NULL);
+        vkFreeMemory(self->m_logicalDevice, self->m_uniformBuffersMemory[i], NULL);
+      }
+
+      if (self->m_descriptorSetLayout) {
+        vkDestroyDescriptorSetLayout(self->m_logicalDevice, self->m_descriptorSetLayout, NULL);
+      }
+
+      if (self->m_indexBuffer) {
+        vkDestroyBuffer(self->m_logicalDevice, self->m_indexBuffer, NULL);
+      }
+      if (self->m_indexBufferMemory) {
+        vkFreeMemory(self->m_logicalDevice, self->m_indexBufferMemory, NULL);
+      }
+
+      for (u8 i = 0; i < self->m_SwapChain__images_count; i++) {
+        vkDestroyBuffer(self->m_logicalDevice, self->m_vertexBuffers[i], NULL);
+      }
+      for (u8 i = 0; i < self->m_SwapChain__images_count; i++) {
+        vkFreeMemory(self->m_logicalDevice, self->m_vertexBufferMemories[i], NULL);
+      }
+
+      if (self->m_graphicsPipeline) {
+        vkDestroyPipeline(self->m_logicalDevice, self->m_graphicsPipeline, NULL);
+      }
+      if (self->m_pipelineLayout) {
+        vkDestroyPipelineLayout(self->m_logicalDevice, self->m_pipelineLayout, NULL);
+      }
+      if (self->m_renderPass) {
+        vkDestroyRenderPass(self->m_logicalDevice, self->m_renderPass, NULL);
+      }
+
+      for (u8 i = 0; i < self->m_SwapChain__images_count; i++) {
+        if (self->m_renderFinishedSemaphores[i]) {
+          vkDestroySemaphore(self->m_logicalDevice, self->m_renderFinishedSemaphores[i], NULL);
+        }
+        if (self->m_imageAvailableSemaphores[i]) {
+          vkDestroySemaphore(self->m_logicalDevice, self->m_imageAvailableSemaphores[i], NULL);
+        }
+        if (self->m_inFlightFences[i]) {
+          vkDestroyFence(self->m_logicalDevice, self->m_inFlightFences[i], NULL);
+        }
+      }
+      if (self->m_commandPool) {
+        vkDestroyCommandPool(self->m_logicalDevice, self->m_commandPool, NULL);
+      }
+
+      vkDestroyDevice(self->m_logicalDevice, NULL);
+
+      // if (self->m_enableValidationLayers) {
+      //     DestroyDebugUtilsMessengerEXT(self->m_instance, self->m_debugMessenger, NULL);
+      // }
+
+      if (self->m_surface) {
+        vkDestroySurfaceKHR(self->m_instance, self->m_surface, NULL);
+      }
+    }
+    // NOTICE: physicalDevice is destroyed implicitly with instance.
+    vkDestroyInstance(self->m_instance, NULL);
   }
 }

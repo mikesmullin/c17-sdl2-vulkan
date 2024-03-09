@@ -76,6 +76,10 @@ typedef struct {
   VkPresentModeKHR m_SwapChain__presentModes[VULKAN_SWAPCHAIN_PRESENT_MODES_CAP];
   Vulkan__PhysicalDeviceQueue_t m_SwapChain__queues;
   VkFramebuffer m_SwapChain__framebuffers[VULKAN_SWAPCHAIN_IMAGES_CAP];
+  u8 m_currentFrame;
+  u32 m_imageIndex;
+  u32 m_drawIndexCount;
+  u32 m_instanceCount;
 
   // pipeline
   VkRenderPass m_renderPass;
@@ -122,7 +126,7 @@ void Vulkan__UsePhysicalDevice(Vulkan_t* self, const u8 requiredDeviceIndex);
 
 void Vulkan__AssertSwapChainSupported(Vulkan_t* self);
 void Vulkan__CreateLogicalDeviceAndQueues(Vulkan_t* self);
-void Vulkan__CreateSwapChain(Vulkan_t* self, VkSwapchainKHR oldSwapChain);
+void Vulkan__CreateSwapChain(Vulkan_t* self, bool hadPriorSwapChain);
 void Vulkan__CreateImageViews(Vulkan_t* self);
 void Vulkan__CreateRenderPass(Vulkan_t* self);
 void Vulkan__CreateDescriptorSetLayout(Vulkan_t* self);
@@ -176,6 +180,7 @@ void Vulkan__CreateImageView(
 void Vulkan__CreateTextureImageView(Vulkan_t* self);
 void Vulkan__CreateTextureSampler(Vulkan_t* self);
 void Vulkan__CreateVertexBuffer(Vulkan_t* self, u8 idx, u64 size, const void* indata);
+void Vulkan__UpdateVertexBuffer(Vulkan_t* self, u8 idx, u64 size, const void* indata);
 void Vulkan__CreateIndexBuffer(Vulkan_t* self, u64 size, const void* indata);
 void Vulkan__CreateUniformBuffers(Vulkan_t* self, const unsigned int length);
 void Vulkan__UpdateUniformBuffer(Vulkan_t* self, u8 frame, void* ubo);
@@ -183,5 +188,12 @@ void Vulkan__CreateDescriptorPool(Vulkan_t* self);
 void Vulkan__CreateDescriptorSets(Vulkan_t* self);
 void Vulkan__CreateCommandBuffers(Vulkan_t* self);
 void Vulkan__CreateSyncObjects(Vulkan_t* self);
+void Vulkan__DeviceWaitIdle(Vulkan_t* self);
+void Vulkan__CleanupSwapChain(Vulkan_t* self);
+void Vulkan__RecreateSwapChain(Vulkan_t* self);
+void Vulkan__AwaitNextFrame(Vulkan_t* self);
+void Vulkan__RecordCommandBuffer(Vulkan_t* same, VkCommandBuffer* commandBuffer, u32 imageIndex);
+void Vulkan__DrawFrame(Vulkan_t* self);
+void Vulkan__Cleanup(Vulkan_t* self);
 
 #endif

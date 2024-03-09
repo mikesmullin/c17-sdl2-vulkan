@@ -40,6 +40,8 @@
 
 // Scalars
 
+#define ARRAY_COUNT(a) (sizeof(a) / sizeof(a[0]))
+
 #include <stdbool.h>
 #include <stdint.h>
 typedef int8_t s8;

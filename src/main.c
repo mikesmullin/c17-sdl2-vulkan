@@ -43,6 +43,13 @@ typedef struct {
   f32 aspect;
 } World_t;
 
+World_t world = {
+    {0.0f, 1.0f, 2.0f},
+    {0.0f, 0.0f, 0.0f},
+};
+
+vec3 VEC3_Y_UP = {0, 1, 0};
+
 typedef struct {
   mat4 proj;
   mat4 view;
@@ -69,6 +76,8 @@ const char* textureFiles[] = {
     "../assets/textures/roguelikeSheet_transparent.png",
     "../assets/textures/wood-wall.png",
 };
+
+ubo_ProjView_t ubo1;  // projection x view matrices
 
 static void physicsCallback(const f32 deltaTime);
 static void renderCallback(const f32 deltaTime);
@@ -115,7 +124,7 @@ int main() {
   // establish vulkan scene
   Vulkan__AssertSwapChainSupported(&s_Vulkan);
   Vulkan__CreateLogicalDeviceAndQueues(&s_Vulkan);
-  Vulkan__CreateSwapChain(&s_Vulkan, NULL);
+  Vulkan__CreateSwapChain(&s_Vulkan, false);
   Vulkan__CreateImageViews(&s_Vulkan);
   Vulkan__CreateRenderPass(&s_Vulkan);
   Vulkan__CreateDescriptorSetLayout(&s_Vulkan);
@@ -148,21 +157,24 @@ int main() {
   Vulkan__CreateVertexBuffer(&s_Vulkan, 0, sizeof(vertices), vertices);
   Vulkan__CreateVertexBuffer(&s_Vulkan, 1, sizeof(instances), instances);
   Vulkan__CreateIndexBuffer(&s_Vulkan, sizeof(indices), indices);
-  ubo_ProjView_t ubo1;  // projection x view matrices
   Vulkan__CreateUniformBuffers(&s_Vulkan, sizeof(ubo1));
   Vulkan__CreateDescriptorPool(&s_Vulkan);
   Vulkan__CreateDescriptorSets(&s_Vulkan);
   Vulkan__CreateCommandBuffers(&s_Vulkan);
   Vulkan__CreateSyncObjects(&s_Vulkan);
+  u32 drawIndexCount = ARRAY_COUNT(indices);
 
   // main loop
   Window__RenderLoop(&s_Window, PHYSICS_FPS, RENDER_FPS, &physicsCallback, &renderCallback);
 
   // cleanup
-  printf("end main.\n");
+  printf("shutdown main.\n");
+  Vulkan__DeviceWaitIdle(&s_Vulkan);
+  Gamepad__Shutdown(&gamePad1);
+  Vulkan__Cleanup(&s_Vulkan);
   Audio__Shutdown();
   Window__Shutdown(&s_Window);
-  printf("shutdown complete.\n");
+  printf("end main.\n");
   return 0;
 }
 
@@ -175,27 +187,29 @@ void renderCallback(const f32 deltaTime) {
 
   if (isVBODirty) {
     isVBODirty = false;
-    // w.v.instanceCount = instances.size();
-    // w.v.UpdateVertexBuffer(1, VectorSize(instances), instances.data());
+    s_Vulkan.m_instanceCount = ARRAY_COUNT(instances);
+    Vulkan__UpdateVertexBuffer(&s_Vulkan, 1, sizeof(instances), instances);
   }
 
   if (isUBODirty) {
     isUBODirty = false;
 
-    // ubo1.view = glm::lookAt(
-    //     glm::vec3(world.cam.x, world.cam.y, world.cam.z),
-    //     glm::vec3(world.look.x, world.look.y, world.look.z),
-    //     glm::vec3(0.0f, 1.0f, 0.0f));  // Y-axis points upwards (GLM default)
-    // w.v.aspectRatio = world.aspect;    // sync viewport
-    // // ubo1.proj = glm::perspective(
-    // //     glm::radians(45.0f),  // half the actual 90deg fov
-    // //     world.aspect,
-    // //     0.1f,  // TODO: adjust clipping range for z depth?
-    // //     10.0f);
-    // ubo1.proj = glm::ortho(-0.5f, +0.5f, -0.5f, +0.5f, 0.1f, 10.0f);
-    // ubo1.user1 = world.user1;
-    // ubo1.user2 = world.user2;
-
-    // w.v.UpdateUniformBuffer(&ubo1);
+    glm_lookat(
+        world.cam,
+        world.look,
+        VEC3_Y_UP,  // Y-axis points upwards (GLM default)
+        ubo1.view);
+    s_Vulkan.m_aspectRatio = world.aspect;  // sync viewport
+    // glm_perspective(
+    //     glm_rad(45.0f),  // half the actual 90deg fov
+    //     world.aspect,
+    //     0.1f,  // TODO: adjust clipping range for z depth?
+    //     10.0f,
+    //     ubo1.proj);
+    glm_ortho(-0.5f, +0.5f, -0.5f, +0.5f, 0.1f, 10.0f, ubo1.proj);
+    glm_vec2_copy(world.user1, ubo1.user1);
+    glm_vec2_copy(world.user2, ubo1.user2);
+    // TODO: not sure i make use of one UBO per frame, really
+    Vulkan__UpdateUniformBuffer(&s_Vulkan, s_Vulkan.m_currentFrame, &ubo1);
   }
 }
