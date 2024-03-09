@@ -108,7 +108,7 @@ int main() {
           offsetof(Instance_t, scale),
           offsetof(Instance_t, texId)});
   Vulkan__CreateFrameBuffers(&s_Vulkan);
-  // Vulkan__CreateCommandPool(&s_Vulkan);
+  Vulkan__CreateCommandPool(&s_Vulkan);
   // Vulkan__CreateTextureImage(&s_Vulkan, textureFiles[0].c_str());
   // Vulkan__CreateTextureImageView(&s_Vulkan);
   // Vulkan__CreateTextureSampler(&s_Vulkan);

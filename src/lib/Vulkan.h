@@ -83,6 +83,7 @@ typedef struct {
   VkDeviceMemory m_vertexBufferMemories[VULKAN_SWAPCHAIN_IMAGES_CAP];
   VkPipelineLayout m_pipelineLayout;
   VkPipeline m_graphicsPipeline;
+  VkCommandPool m_commandPool;
 } Vulkan_t;
 
 void Vulkan__InitDriver1(Vulkan_t* self);
@@ -123,4 +124,5 @@ void Vulkan__CreateGraphicsPipeline(
     u32 formats[],
     u32 offsets[]);
 void Vulkan__CreateFrameBuffers(Vulkan_t* self);
+void Vulkan__CreateCommandPool(Vulkan_t* self);
 #endif

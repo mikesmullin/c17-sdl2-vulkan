@@ -974,3 +974,15 @@ void Vulkan__CreateFrameBuffers(Vulkan_t* self) {
                           &self->m_SwapChain__framebuffers[i]))
   }
 }
+
+void Vulkan__CreateCommandPool(Vulkan_t* self) {
+  VkCommandPoolCreateInfo poolInfo;
+  poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+  poolInfo.pNext = NULL;
+  poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+  poolInfo.queueFamilyIndex = self->m_SwapChain__queues.graphics__index;
+
+  ASSERT(
+      VK_SUCCESS ==
+      vkCreateCommandPool(self->m_logicalDevice, &poolInfo, NULL, &self->m_commandPool))
+}
