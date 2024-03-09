@@ -1403,3 +1403,31 @@ void Vulkan__CreateIndexBuffer(Vulkan_t* self, u64 size, const void* indata) {
   vkDestroyBuffer(self->m_logicalDevice, stagingBuffer, NULL);
   vkFreeMemory(self->m_logicalDevice, stagingBufferMemory, NULL);
 }
+
+void Vulkan__CreateUniformBuffers(Vulkan_t* self, const unsigned int length) {
+  VkDeviceSize bufferSize = length;
+
+  for (size_t i = 0; i < self->m_SwapChain__images_count; i++) {
+    self->m_uniformBufferLengths[i] = length;
+    Vulkan__CreateBuffer(
+        self,
+        bufferSize,
+        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        &self->m_uniformBuffers[i],
+        &self->m_uniformBuffersMemory[i]);
+
+    ASSERT(
+        VK_SUCCESS == vkMapMemory(
+                          self->m_logicalDevice,
+                          self->m_uniformBuffersMemory[i],
+                          0,
+                          bufferSize,
+                          0,
+                          &self->m_uniformBuffersMapped[i]))
+  }
+}
+
+void Vulkan__UpdateUniformBuffer(Vulkan_t* self, u8 frame, void* ubo) {
+  memcpy(self->m_uniformBuffersMapped[frame], ubo, self->m_uniformBufferLengths[frame]);
+}

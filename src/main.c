@@ -35,6 +35,21 @@ typedef struct {
 #define MAX_INSTANCES 255  // TODO: find out how to exceed this limit
 Instance_t instances[MAX_INSTANCES];
 
+typedef struct {
+  vec3 cam;
+  vec3 look;
+  vec2 user1;
+  vec2 user2;
+  f32 aspect;
+} World_t;
+
+typedef struct {
+  mat4 proj;
+  mat4 view;
+  vec2 user1;
+  vec2 user2;
+} ubo_ProjView_t;
+
 Mesh_t vertices[] = {
     {{-0.5f, -0.5f}},
     {{0.5f, -0.5f}},
@@ -133,7 +148,8 @@ int main() {
   Vulkan__CreateVertexBuffer(&s_Vulkan, 0, sizeof(vertices), vertices);
   Vulkan__CreateVertexBuffer(&s_Vulkan, 1, sizeof(instances), instances);
   Vulkan__CreateIndexBuffer(&s_Vulkan, sizeof(indices), indices);
-  // Vulkan__CreateUniformBuffers(&s_Vulkan, sizeof(ubo_ProjView));
+  ubo_ProjView_t ubo1;  // projection x view matrices
+  Vulkan__CreateUniformBuffers(&s_Vulkan, sizeof(ubo1));
   // Vulkan__CreateDescriptorPool(&s_Vulkan);
   // Vulkan__CreateDescriptorSets(&s_Vulkan);
   // Vulkan__CreateCommandBuffers(&s_Vulkan);
