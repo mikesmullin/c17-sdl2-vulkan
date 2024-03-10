@@ -39,6 +39,11 @@ typedef struct {
 static u16 instanceCount = 1;
 static Instance_t instances[MAX_INSTANCES];
 
+enum INSTANCES {
+  INSTANCE_FLOOR_0 = 0,
+  INSTANCE_PLAYER_1 = 1,
+};
+
 typedef struct {
   vec3 cam;
   vec3 look;
@@ -189,7 +194,7 @@ int main() {
   Audio__Init();
 
   Audio__LoadAudioFile(audioFiles[AUDIO_AMBIENCE]);
-  Audio__PlayAudio(AUDIO_AMBIENCE, true, 10.0f);
+  Audio__PlayAudio(AUDIO_AMBIENCE, true, 6.0f);
 
   Audio__LoadAudioFile(audioFiles[AUDIO_FOOTSTEPS]);
   // Audio__PlayAudio(AUDIO_FOOTSTEPS, true, 10.0f);
@@ -271,16 +276,20 @@ int main() {
   glm_vec3_copy((vec3){0, 0, 1}, world.cam);
   glm_vec3_copy((vec3){0, 0, 0}, world.look);
 
-  glm_vec3_copy((vec3){0, 0, 0}, instances[0].pos);
-  glm_vec3_copy((vec3){0, 0, 0}, instances[0].rot);
-  glm_vec3_copy((vec3){PixelsToUnits(2632), PixelsToUnits(1721), 1}, instances[0].scale);
-  instances[0].texId = 0;
+  glm_vec3_copy((vec3){0, 0, 0}, instances[INSTANCE_FLOOR_0].pos);
+  glm_vec3_copy((vec3){0, 0, 0}, instances[INSTANCE_FLOOR_0].rot);
+  glm_vec3_copy(
+      (vec3){PixelsToUnits(2632), PixelsToUnits(1721), 1},
+      instances[INSTANCE_FLOOR_0].scale);
+  instances[INSTANCE_FLOOR_0].texId = 0;
   instanceCount = 1;
 
-  glm_vec3_copy((vec3){0, 0, 0}, instances[instanceCount].pos);
-  glm_vec3_copy((vec3){0, 0, 0}, instances[instanceCount].rot);
-  glm_vec3_copy((vec3){PixelsToUnits(300), PixelsToUnits(450), 1}, instances[instanceCount].scale);
-  instances[instanceCount].texId = 4;
+  glm_vec3_copy((vec3){0, 0, 0}, instances[INSTANCE_PLAYER_1].pos);
+  glm_vec3_copy((vec3){0, 0, 0}, instances[INSTANCE_PLAYER_1].rot);
+  glm_vec3_copy(
+      (vec3){PixelsToUnits(300), PixelsToUnits(450), 1},
+      instances[INSTANCE_PLAYER_1].scale);
+  instances[INSTANCE_PLAYER_1].texId = 4;
   instanceCount++;
 
   // main loop
@@ -315,10 +324,12 @@ void keyboardCallback() {
     playerAnimationState.facing = BACK;
     playerAnimationState.state = g_Keyboard__state.pressed ? WALK : IDLE;
     // playerAnimationState.anim = &ANIM_VIKING_WALK_BACK;
+    playerAnimationState.anim = &ANIM_VIKING_WALK_FRONT;
   } else if (97 == g_Keyboard__state.location) {  // A
     playerAnimationState.facing = LEFT;
     playerAnimationState.state = g_Keyboard__state.pressed ? WALK : IDLE;
     playerAnimationState.anim = &ANIM_VIKING_WALK_LEFT;
+    // instances[INSTANCE_PLAYER_1].scale[0] = +instances[INSTANCE_PLAYER_1].scale[0];
   } else if (115 == g_Keyboard__state.location) {  // S
     playerAnimationState.facing = FRONT;
     playerAnimationState.state = g_Keyboard__state.pressed ? WALK : IDLE;
@@ -326,7 +337,8 @@ void keyboardCallback() {
   } else if (100 == g_Keyboard__state.location) {  // D
     playerAnimationState.facing = RIGHT;
     playerAnimationState.state = g_Keyboard__state.pressed ? WALK : IDLE;
-    // playerAnimationState.anim = &ANIM_VIKING_WALK_RIGHT;
+    playerAnimationState.anim = &ANIM_VIKING_WALK_LEFT;
+    // instances[INSTANCE_PLAYER_1].scale[0] = -instances[INSTANCE_PLAYER_1].scale[0];
   }
   if (WALK == playerAnimationState.state) {
     Audio__ResumeAudio(AUDIO_FOOTSTEPS, false, 10.0f);
@@ -335,18 +347,41 @@ void keyboardCallback() {
 
     if (BACK == playerAnimationState.facing) {
       // playerAnimationState.anim = &ANIM_VIKING_IDLE_BACK;
+      playerAnimationState.anim = &ANIM_VIKING_IDLE_FRONT;
     } else if (LEFT == playerAnimationState.facing) {
       playerAnimationState.anim = &ANIM_VIKING_IDLE_LEFT;
     } else if (FRONT == playerAnimationState.facing) {
       playerAnimationState.anim = &ANIM_VIKING_IDLE_FRONT;
     } else if (RIGHT == playerAnimationState.facing) {
       // playerAnimationState.anim = &ANIM_VIKING_IDLE_RIGHT;
+      playerAnimationState.anim = &ANIM_VIKING_IDLE_LEFT;
     }
   }
 }
 
+static const f32 PLAYER_WALK_SPEED = 1.0f / 3;  // per-second
+
 void physicsCallback(const f64 deltaTime) {
   // OnFixedUpdate(deltaTime);
+  if (WALK == playerAnimationState.state) {
+    if (LEFT == playerAnimationState.facing) {
+      instances[INSTANCE_PLAYER_1].pos[0] -= PLAYER_WALK_SPEED * deltaTime;
+    } else if (RIGHT == playerAnimationState.facing) {
+      instances[INSTANCE_PLAYER_1].pos[0] += PLAYER_WALK_SPEED * deltaTime;
+    } else if (BACK == playerAnimationState.facing) {
+      instances[INSTANCE_PLAYER_1].pos[1] -= PLAYER_WALK_SPEED * deltaTime;
+    } else if (FRONT == playerAnimationState.facing) {
+      instances[INSTANCE_PLAYER_1].pos[1] += PLAYER_WALK_SPEED * deltaTime;
+    }
+    isVBODirty = true;
+
+    world.cam[0] = instances[INSTANCE_PLAYER_1].pos[0];
+    world.cam[1] = instances[INSTANCE_PLAYER_1].pos[1];
+    world.look[0] = instances[INSTANCE_PLAYER_1].pos[0];
+    world.look[1] = instances[INSTANCE_PLAYER_1].pos[1];
+    isUBODirty[0] = true;
+    isUBODirty[1] = true;
+  }
 }
 
 static u8 newTexId;
