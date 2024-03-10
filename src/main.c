@@ -1,3 +1,4 @@
+#define CGLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <cglm/cglm.h>
 #include <stdio.h>
 
@@ -218,20 +219,16 @@ void renderCallback(const f64 deltaTime) {
         ubo1.view);
 
     s_Vulkan.m_aspectRatio = world.aspect;  // sync viewport
+
     // glm_perspective(
     //     glm_rad(45.0f),  // half the actual 90deg fov
     //     world.aspect,
     //     0.1f,  // TODO: adjust clipping range for z depth?
     //     10.0f,
     //     ubo1.proj);
+
     glm_ortho(-0.5f, +0.5f, -0.5f, +0.5f, 0.1f, 10.0f, ubo1.proj);
-
-    ubo1.proj[2][2] = -0.10101;
-    ubo1.proj[3][2] = -0.01010;
     glm_vec2_copy(world.user1, ubo1.user1);
-
-    world.user2[0] = 1.0f;
-    world.user2[1] = 1.0f;
     glm_vec2_copy(world.user2, ubo1.user2);
 
     // TODO: not sure i make use of one UBO per frame, really
