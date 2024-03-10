@@ -77,6 +77,7 @@ static const char* textureFiles[] = {
 
 static const char* audioFiles[] = {
     "../assets/audio/music/grassland.wav",
+    "../assets/audio/sfx/grassland_footsteps.wav",
 };
 
 static ubo_ProjView_t ubo1;  // projection x view matrices
@@ -106,6 +107,9 @@ int main() {
 
   Audio__LoadAudioFile(audioFiles[0]);
   Audio__PlayAudio(0, true, 1.0f);
+
+  Audio__LoadAudioFile(audioFiles[1]);
+  Audio__PlayAudio(1, false, 1.0f);
 
   Gamepad_t gamePad1;
   Gamepad__New(&gamePad1, 0);
