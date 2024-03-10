@@ -89,6 +89,13 @@ static const char* textureFiles[] = {
 static const char* audioFiles[] = {
     "../assets/audio/music/grassland.wav",
     "../assets/audio/sfx/grassland_footsteps.wav",
+    "../assets/audio/sfx/set_wood_wall.wav",
+};
+
+enum AUDIO_FILES {
+  AUDIO_AMBIENCE = 0,
+  AUDIO_FOOTSTEPS = 1,
+  AUDIO_SET_WOOD_WALL = 2,
 };
 
 static ubo_ProjView_t ubo1;  // projection x view matrices
@@ -180,11 +187,6 @@ u8 Animate(AnimationState_t* state, f64 deltaTime) {
   return texId;
 }
 
-enum AUDIO_FILES {
-  AUDIO_AMBIENCE = 0,
-  AUDIO_FOOTSTEPS = 1,
-};
-
 int main() {
   printf("begin main.\n");
 
@@ -201,9 +203,8 @@ int main() {
 
   Audio__LoadAudioFile(audioFiles[AUDIO_AMBIENCE]);
   Audio__PlayAudio(AUDIO_AMBIENCE, true, 6.0f);
-
   Audio__LoadAudioFile(audioFiles[AUDIO_FOOTSTEPS]);
-  // Audio__PlayAudio(AUDIO_FOOTSTEPS, true, 10.0f);
+  Audio__LoadAudioFile(audioFiles[AUDIO_SET_WOOD_WALL]);
 
   Keyboard__RegisterCallback(keyboardCallback);
   Finger__RegisterCallback(fingerCallback);
@@ -399,6 +400,32 @@ static void fingerCallback() {
     world.cam[2] += -g_Finger__state.wheel_y * PLAYER_ZOOM_SPEED /* deltaTime*/;
     isUBODirty[0] = true;
     isUBODirty[1] = true;
+  }
+
+  else if (FINGER_DOWN == g_Finger__state.event) {
+    // TODO: how to move this into physics callback? or is it better not to?
+    // TODO: animate player walk-to, before placing-down
+    // TODO: convert window x,y to world x,y
+
+    vec3 pos = (vec3){g_Finger__state.x, g_Finger__state.y, 0.0f};
+    mat4 pvMatrix;
+    glm_mat4_mul(ubo1.proj, ubo1.view, pvMatrix);
+    vec4 viewport = (vec4){0, 0, s_Window.width, s_Window.height};
+    vec3 dest;
+    glm_unproject(pos, pvMatrix, viewport, dest);
+
+    instances[instanceCount].pos[0] = dest[0];
+    instances[instanceCount].pos[1] = dest[1];
+    instances[instanceCount].pos[2] = 0.0f;  // dest[2];
+
+    instances[instanceCount].scale[0] = PixelsToUnits(350 / 2);
+    instances[instanceCount].scale[1] = PixelsToUnits(420 / 2);
+    instances[instanceCount].scale[2] = 1.0f;
+    instances[instanceCount].texId = 2;  // wood-wall 1
+    instanceCount++;
+    isVBODirty = true;
+
+    Audio__PlayAudio(AUDIO_SET_WOOD_WALL, false, 1.0f);
   }
 }
 
