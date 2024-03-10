@@ -184,10 +184,10 @@ int main() {
   Audio__Init();
 
   Audio__LoadAudioFile(audioFiles[0]);
-  Audio__PlayAudio(0, true, 1.0f);
+  Audio__PlayAudio(0, true, 10.0f);
 
   Audio__LoadAudioFile(audioFiles[1]);
-  Audio__PlayAudio(1, false, 1.0f);
+  Audio__PlayAudio(1, true, 10.0f);
 
   Gamepad_t gamePad1;
   Gamepad__New(&gamePad1, 0);
