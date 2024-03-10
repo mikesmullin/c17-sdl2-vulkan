@@ -70,8 +70,8 @@ static const char* shaderFiles[] = {
 };
 
 static const char* textureFiles[] = {
-    "../assets/textures/roguelikeSheet_transparent.png",
     "../assets/textures/wood-wall.png",
+    "../assets/textures/roguelikeSheet_transparent.png",
 };
 
 static ubo_ProjView_t ubo1;  // projection x view matrices
@@ -177,7 +177,7 @@ int main() {
   instanceCount = 1;
   glm_vec3_copy((vec3){0, 0, 0}, instances[0].pos);
   glm_vec3_copy((vec3){0, 0, 0}, instances[0].rot);
-  glm_vec3_copy((vec3){PixelsToUnits(968), PixelsToUnits(526), 1}, instances[0].scale);
+  glm_vec3_copy((vec3){PixelsToUnits(696), PixelsToUnits(418), 1}, instances[0].scale);
   instances[0].texId = 0;
 
   // main loop
