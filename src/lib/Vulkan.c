@@ -17,7 +17,7 @@ void Vulkan__InitDriver1(Vulkan_t* self) {
   self->m_requiredPhysicalDeviceExtensionsCount = 0;
   self->m_physicalDevice = VK_NULL_HANDLE;
 
-  self->m_aspectRatio = ASPECT_SQUARE;
+  self->m_aspectRatio = ASPECT_SQUARE_1_1;
   self->m_windowWidth = 0;
   self->m_windowHeight = 0;
   self->m_viewportX = 0;

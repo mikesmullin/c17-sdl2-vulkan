@@ -234,6 +234,8 @@ int main() {
 
   DrawableArea_t area = {0, 0};
   Window__GetDrawableAreaExtentBounds(&s_Window, &area);
+  world.aspect = ASPECT_WIDESCEEN_16_9;
+  s_Vulkan.m_aspectRatio = world.aspect;
   Window__KeepAspectRatio(&s_Window, area.width, area.height);
 
   // establish vulkan scene
@@ -280,7 +282,6 @@ int main() {
   s_Vulkan.m_drawIndexCount = ARRAY_COUNT(indices);
 
   // setup scene
-  world.aspect = ASPECT_SQUARE;
   glm_vec3_copy((vec3){0, 0, 1}, world.cam);
   glm_vec3_copy((vec3){0, 0, 0}, world.look);
 
