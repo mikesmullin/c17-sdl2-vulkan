@@ -16,6 +16,10 @@ typedef struct {
   u8 location;
 } KeyboardState;
 
+extern KeyboardState g_Keyboard__state;
+
 void Keyboard__OnInput(const SDL_Event* event);
+void Keyboard__RegisterCallback(void(*cb));
+void Keyboard__DispatchCallbacks();
 
 #endif

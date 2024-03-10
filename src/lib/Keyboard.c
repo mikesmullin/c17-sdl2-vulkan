@@ -10,6 +10,22 @@ KeyboardState g_Keyboard__state = {
     .location = 0,
 };
 
+#define KEYBOARD_CALLBACKS_CAP 10
+static const void (*CALLBACKS[KEYBOARD_CALLBACKS_CAP])();
+static u8 callbackCount = 0;
+
+void Keyboard__RegisterCallback(void(*cb)) {
+  ASSERT(callbackCount < KEYBOARD_CALLBACKS_CAP);
+  CALLBACKS[callbackCount] = cb;
+  callbackCount++;
+}
+
+void Keyboard__DispatchCallbacks() {
+  for (u8 i = 0; i < callbackCount; i++) {
+    CALLBACKS[i]();
+  }
+}
+
 void Keyboard__OnInput(const SDL_Event* event) {
   switch (event->type) {
     case SDL_KEYDOWN:
@@ -42,6 +58,8 @@ void Keyboard__OnInput(const SDL_Event* event) {
       //     g_Keyboard__state.ctrlKey,
       //     g_Keyboard__state.shiftKey,
       //     g_Keyboard__state.metaKey);
+
+      Keyboard__DispatchCallbacks();
 
       break;
   }

@@ -87,5 +87,19 @@ void Audio__PlayAudio(const int id, const bool loop, const double gain) {
   cm_set_gain(s_AudioSources[id], gain);
   cm_set_loop(s_AudioSources[id], loop ? 1 : 0);
   cm_play(s_AudioSources[id]);
-  // LOG_INFOF("Playing sound: %u", id);
+}
+
+void Audio__ResumeAudio(const int id, const bool loop, const double gain) {
+  if (cm_get_state(s_AudioSources[id]) == CM_STATE_PLAYING) {
+    return;
+  }
+  cm_set_gain(s_AudioSources[id], gain);
+  cm_set_loop(s_AudioSources[id], loop ? 1 : 0);
+  cm_play(s_AudioSources[id]);
+}
+
+void Audio__StopAudio(const int id) {
+  if (cm_get_state(s_AudioSources[id]) == CM_STATE_PLAYING) {
+    cm_stop(s_AudioSources[id]);
+  }
 }

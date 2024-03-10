@@ -4,6 +4,7 @@
 
 #include "lib/Audio.h"
 #include "lib/Gamepad.h"
+#include "lib/Keyboard.h"
 #include "lib/Math.h"
 #include "lib/SDL.h"
 #include "lib/Timer.h"
@@ -84,6 +85,7 @@ static ubo_ProjView_t ubo1;  // projection x view matrices
 
 static void physicsCallback(const f64 deltaTime);
 static void renderCallback(const f64 deltaTime);
+static void keyboardCallback();
 
 static const u16 CANVAS_WH = 800;
 static const u16 PIXELS_PER_UNIT = CANVAS_WH;
@@ -110,7 +112,7 @@ typedef struct {
 } Animation_t;
 
 static Animation_t ANIM_VIKING_IDLE_FRONT = {
-    .duration = (1.0f / 3.75) * 2,
+    .duration = 3.0f,
     .frameCount = 2,
     .frames = {3, 4},
 };
@@ -143,13 +145,13 @@ typedef struct {
 } AnimationState_t;
 
 static AnimationState_t playerAnimationState = {
-    // .facing = FRONT,
-    // .state = IDLE,
-    // .anim = &ANIM_VIKING_IDLE_FRONT,
+    .facing = FRONT,
+    .state = IDLE,
+    .anim = &ANIM_VIKING_IDLE_FRONT,
 
-    .facing = LEFT,
-    .state = WALK,
-    .anim = &ANIM_VIKING_WALK_LEFT,
+    // .facing = LEFT,
+    // .state = WALK,
+    // .anim = &ANIM_VIKING_WALK_LEFT,
 
     // .facing = FRONT,
     // .state = WALK,
@@ -167,6 +169,11 @@ u8 Animate(AnimationState_t* state, f64 deltaTime) {
   return texId;
 }
 
+enum AUDIO_FILES {
+  AUDIO_AMBIENCE = 0,
+  AUDIO_FOOTSTEPS = 1,
+};
+
 int main() {
   printf("begin main.\n");
 
@@ -181,11 +188,13 @@ int main() {
   SDL__Init();
   Audio__Init();
 
-  Audio__LoadAudioFile(audioFiles[0]);
-  Audio__PlayAudio(0, true, 10.0f);
+  Audio__LoadAudioFile(audioFiles[AUDIO_AMBIENCE]);
+  Audio__PlayAudio(AUDIO_AMBIENCE, true, 10.0f);
 
-  Audio__LoadAudioFile(audioFiles[1]);
-  Audio__PlayAudio(1, true, 10.0f);
+  Audio__LoadAudioFile(audioFiles[AUDIO_FOOTSTEPS]);
+  // Audio__PlayAudio(AUDIO_FOOTSTEPS, true, 10.0f);
+
+  Keyboard__RegisterCallback(keyboardCallback);
 
   Gamepad_t gamePad1;
   Gamepad__New(&gamePad1, 0);
@@ -286,6 +295,54 @@ int main() {
   Window__Shutdown(&s_Window);
   printf("end main.\n");
   return 0;
+}
+
+void keyboardCallback() {
+  // LOG_DEBUGF(
+  //     "SDL_KEY{UP,DOWN} state "
+  //     "code %u location %u pressed %u alt %u "
+  //     "ctrl %u shift %u meta %u",
+  //     g_Keyboard__state.code,
+  //     g_Keyboard__state.location,
+  //     g_Keyboard__state.pressed,
+  //     g_Keyboard__state.altKey,
+  //     g_Keyboard__state.ctrlKey,
+  //     g_Keyboard__state.shiftKey,
+  //     g_Keyboard__state.metaKey);
+
+  // character locomotion controls
+  if (119 == g_Keyboard__state.location) {  // W
+    playerAnimationState.facing = BACK;
+    playerAnimationState.state = g_Keyboard__state.pressed ? WALK : IDLE;
+    // playerAnimationState.anim = &ANIM_VIKING_WALK_BACK;
+  } else if (97 == g_Keyboard__state.location) {  // A
+    playerAnimationState.facing = LEFT;
+    playerAnimationState.state = g_Keyboard__state.pressed ? WALK : IDLE;
+    playerAnimationState.anim = &ANIM_VIKING_WALK_LEFT;
+  } else if (115 == g_Keyboard__state.location) {  // S
+    playerAnimationState.facing = FRONT;
+    playerAnimationState.state = g_Keyboard__state.pressed ? WALK : IDLE;
+    playerAnimationState.anim = &ANIM_VIKING_WALK_FRONT;
+  } else if (100 == g_Keyboard__state.location) {  // D
+    playerAnimationState.facing = RIGHT;
+    playerAnimationState.state = g_Keyboard__state.pressed ? WALK : IDLE;
+    // playerAnimationState.anim = &ANIM_VIKING_WALK_RIGHT;
+  }
+  if (WALK == playerAnimationState.state) {
+    Audio__ResumeAudio(AUDIO_FOOTSTEPS, false, 10.0f);
+  } else if (IDLE == playerAnimationState.state) {
+    Audio__StopAudio(AUDIO_FOOTSTEPS);
+
+    if (BACK == playerAnimationState.facing) {
+      // playerAnimationState.anim = &ANIM_VIKING_IDLE_BACK;
+    } else if (LEFT == playerAnimationState.facing) {
+      playerAnimationState.anim = &ANIM_VIKING_IDLE_LEFT;
+    } else if (FRONT == playerAnimationState.facing) {
+      playerAnimationState.anim = &ANIM_VIKING_IDLE_FRONT;
+    } else if (RIGHT == playerAnimationState.facing) {
+      // playerAnimationState.anim = &ANIM_VIKING_IDLE_RIGHT;
+    }
+  }
 }
 
 void physicsCallback(const f64 deltaTime) {
