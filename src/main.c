@@ -17,7 +17,6 @@ static u16 WINDOW_HEIGHT = 800;
 
 static const u8 PHYSICS_FPS = 50;
 static const u8 RENDER_FPS = 60;
-static const u8 ANIMATION_FPS = 8;
 static bool isVBODirty = true;
 static bool isUBODirty[] = {true, true};
 
@@ -83,7 +82,6 @@ static const char* audioFiles[] = {
 
 static ubo_ProjView_t ubo1;  // projection x view matrices
 
-static void animationCallback(const f64 deltaTime);
 static void physicsCallback(const f64 deltaTime);
 static void renderCallback(const f64 deltaTime);
 
@@ -277,14 +275,7 @@ int main() {
   instanceCount++;
 
   // main loop
-  Window__RenderLoop(
-      &s_Window,
-      ANIMATION_FPS,
-      PHYSICS_FPS,
-      RENDER_FPS,
-      &animationCallback,
-      &physicsCallback,
-      &renderCallback);
+  Window__RenderLoop(&s_Window, PHYSICS_FPS, RENDER_FPS, &physicsCallback, &renderCallback);
 
   // cleanup
   printf("shutdown main.\n");
@@ -299,9 +290,6 @@ int main() {
 
 void physicsCallback(const f64 deltaTime) {
   // OnFixedUpdate(deltaTime);
-}
-
-void animationCallback(const f64 deltaTime) {
 }
 
 static u8 newTexId;

@@ -101,20 +101,15 @@ void Window__KeepAspectRatio(Window_t* self, const u32 width, const u32 height) 
 
 void Window__RenderLoop(
     Window_t* self,
-    const int animationFps,
     const int physicsFps,
     const int renderFps,
-    void (*animationCallback)(const f64),
     void (*physicsCallback)(const f64),
     void (*renderCallback)(const f64)) {
-  const u8 animationInterval = 1000 / animationFps;
   const u8 physicsInterval = 1000 / physicsFps;
   const u8 renderInterval = 1000 / renderFps;
   u64 currentTime = Timer__NowMilliseconds();
-  u64 lastAnimation = currentTime - animationInterval;
   u64 lastPhysics = currentTime - physicsInterval;
   u64 lastRender = currentTime - renderInterval;
-  u16 elapsedAnimation = 0;
   u16 elapsedPhysics = 0;
   u16 elapsedRender = 0;
   f64 deltaTime = 0.0f;
@@ -161,16 +156,6 @@ void Window__RenderLoop(
     }
 
     if (!self->vulkan->m_minimized) {
-      // Animation update
-      currentTime = Timer__NowMilliseconds();
-      elapsedAnimation = currentTime - lastAnimation;
-      if (elapsedAnimation > animationInterval) {
-        deltaTime = 1.0f / MATH_MAX(1, (currentTime - lastAnimation));
-        lastAnimation = currentTime;
-
-        animationCallback(deltaTime);
-      }
-
       // Physics update
       currentTime = Timer__NowMilliseconds();
       elapsedPhysics = currentTime - lastPhysics;
