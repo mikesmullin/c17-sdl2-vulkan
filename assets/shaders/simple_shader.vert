@@ -65,10 +65,10 @@ mat4 generateModelMatrix(vec3 position, vec3 rotation, vec3 scale) {
     return modelMatrix;
 }
 
-uint TEX1_W = 968;
-uint TEX1_H = 526;
+uint ATLAS_W = 2632;
+uint ATLAS_H = 1721;
 
-vec2 TEXTURE_WH = vec2(TEX1_W,TEX1_H);
+vec2 TEXTURE_WH = vec2(ATLAS_W,ATLAS_H);
 float pixelsToUnitsX(uint pixels) {
     return pixels / TEXTURE_WH.x;
 }
@@ -76,10 +76,14 @@ float pixelsToUnitsY(uint pixels) {
     return pixels / TEXTURE_WH.y;
 }
 
-uint GLYPH_X = 260;
-uint GLYPH_Y = 822;
-uint GLYPH_W = 4;
-uint GLYPH_H = 6;
+uint SPRITE_X = 0;
+uint SPRITE_Y = 690;
+uint SPRITE_W = 300;
+uint SPRITE_H = 450;
+uint SPRITE_IDX_OFFSET = 3;
+uint SPRITE_ROW_LEN = 8;
+uint WOOD_WALL_W = 350;
+uint WOOD_WALL_H = 420;
 
 void main() {
     mat4 model = generateModelMatrix(pos, rot, scale);
@@ -87,26 +91,26 @@ void main() {
 
     // hard-coded map of texId to uvwh coords in texture atlas
     vec4 uvwh;
-    if (0 == texId) { // background 0x0
-        uvwh = vec4(pixelsToUnitsX(0),pixelsToUnitsY(0),pixelsToUnitsX(TEX1_W),pixelsToUnitsY(TEX1_H));
+    if (0 == texId) { // background 0x0 1574x684
+        uvwh = vec4(pixelsToUnitsX(0),pixelsToUnitsY(0),pixelsToUnitsX(1574),pixelsToUnitsY(684));
     }
-    else if (1 == texId) { // paddle 0x815 170x45
-        uvwh = vec4(pixelsToUnitsX(0),pixelsToUnitsY(815),pixelsToUnitsX(170),pixelsToUnitsY(45));
+    else if (1 == texId) { // wood-wall 1 1580x0 350x420
+        uvwh = vec4(pixelsToUnitsX(1580),pixelsToUnitsY(0),pixelsToUnitsX(WOOD_WALL_W),pixelsToUnitsY(WOOD_WALL_H));
     }
-    else if (2 == texId) { // ball 190x815 45x45
-        uvwh = vec4(pixelsToUnitsX(190),pixelsToUnitsY(815),pixelsToUnitsX(45),pixelsToUnitsY(45));
+    else if (2 == texId) { // wood-wall 1 1580x0 350x420
+        uvwh = vec4(pixelsToUnitsX(1580 + WOOD_WALL_W),pixelsToUnitsY(0),pixelsToUnitsX(WOOD_WALL_W),pixelsToUnitsY(WOOD_WALL_H));
     }
 
-    // pixel font glyphs 260x822 4x6
-    else if (texId > 31 && texId < 128) {
-        uint x = (texId - 32);
-        uint y = (x / 32) - 1;
-        x = x % 32;
+    // sprites
+    else if (texId >= SPRITE_IDX_OFFSET) {
+        uint x = (texId - SPRITE_IDX_OFFSET);
+        uint y = (x / SPRITE_ROW_LEN);
+        x = x % SPRITE_ROW_LEN;
         uvwh = vec4(
-            pixelsToUnitsX(GLYPH_X + (GLYPH_W * x)),
-            pixelsToUnitsY(GLYPH_Y + (GLYPH_H * y)),
-            pixelsToUnitsX(GLYPH_W),
-            pixelsToUnitsY(GLYPH_H));
+            pixelsToUnitsX(SPRITE_X + (SPRITE_W * x)),
+            pixelsToUnitsY(SPRITE_Y + (SPRITE_H * y)),
+            pixelsToUnitsX(SPRITE_W),
+            pixelsToUnitsY(SPRITE_H));
     }
 
     if (xy.x == 0.5 && xy.y == -0.5) {

@@ -27,8 +27,10 @@ void Window__GetDrawableAreaExtentBounds(Window_t* self, DrawableArea_t* area);
 void Window__KeepAspectRatio(Window_t* self, const u32 width, const u32 height);
 void Window__RenderLoop(
     Window_t* self,
+    const int animationFps,
     const int physicsFps,
     const int renderFps,
+    void (*animationCallback)(const f64),
     void (*physicsCallback)(const f64),
     void (*renderCallback)(const f64));
 

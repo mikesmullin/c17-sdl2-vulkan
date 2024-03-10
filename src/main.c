@@ -4,6 +4,7 @@
 
 #include "lib/Audio.h"
 #include "lib/Gamepad.h"
+#include "lib/Math.h"
 #include "lib/SDL.h"
 #include "lib/Timer.h"
 #include "lib/Vulkan.h"
@@ -16,6 +17,7 @@ static u16 WINDOW_HEIGHT = 800;
 
 static const u8 PHYSICS_FPS = 50;
 static const u8 RENDER_FPS = 60;
+static const u8 ANIMATION_FPS = 8;
 static bool isVBODirty = true;
 static bool isUBODirty[] = {true, true};
 
@@ -71,8 +73,7 @@ static const char* shaderFiles[] = {
 };
 
 static const char* textureFiles[] = {
-    "../assets/textures/wood-wall.png",
-    "../assets/textures/roguelikeSheet_transparent.png",
+    "../assets/textures/atlas.png",
 };
 
 static const char* audioFiles[] = {
@@ -82,13 +83,90 @@ static const char* audioFiles[] = {
 
 static ubo_ProjView_t ubo1;  // projection x view matrices
 
+static void animationCallback(const f64 deltaTime);
 static void physicsCallback(const f64 deltaTime);
 static void renderCallback(const f64 deltaTime);
 
-static const u16 BACKGROUND_WH = 800;
-static const u16 PIXELS_PER_UNIT = BACKGROUND_WH;
+static const u16 CANVAS_WH = 800;
+static const u16 PIXELS_PER_UNIT = CANVAS_WH;
 static f32 PixelsToUnits(u32 pixels) {
   return (f32)pixels / PIXELS_PER_UNIT;
+}
+
+typedef enum {
+  FRONT = 0,
+  LEFT = 1,
+  RIGHT = 2,
+  BACK = 4,
+} PlayerFacing_t;
+
+typedef enum {
+  IDLE = 0,
+  WALK = 1,
+} PlayerAnimState_t;
+
+typedef struct {
+  f32 duration;
+  u8 frameCount;
+  u8 frames[];
+} Animation_t;
+
+static Animation_t ANIM_VIKING_IDLE_FRONT = {
+    .duration = (1.0f / 3.75) * 2,
+    .frameCount = 2,
+    .frames = {3, 4},
+};
+
+static Animation_t ANIM_VIKING_IDLE_LEFT = {
+    .duration = 1.0f,
+    .frameCount = 1,
+    .frames = {5},
+};
+
+static Animation_t ANIM_VIKING_WALK_LEFT = {
+    .duration = (1.0f / 3.75) * 7,
+    .frameCount = 7,
+    //.frames = {6, 7, 8, 9, 10, 9, 8, 7},
+    .frames = {6, 7, 8, 9, 8, 7, 10},
+};
+
+static Animation_t ANIM_VIKING_WALK_FRONT = {
+    .duration = (1.0f / 3.75) * 8,
+    .frameCount = 8,
+    .frames = {11, 12, 13, 14, 15, 14, 13, 12},
+};
+
+typedef struct {
+  PlayerFacing_t facing;
+  PlayerAnimState_t state;
+  u8 frame;
+  f64 seek;
+  Animation_t* anim;
+} AnimationState_t;
+
+static AnimationState_t playerAnimationState = {
+    // .facing = FRONT,
+    // .state = IDLE,
+    // .anim = &ANIM_VIKING_IDLE_FRONT,
+
+    .facing = LEFT,
+    .state = WALK,
+    .anim = &ANIM_VIKING_WALK_LEFT,
+
+    // .facing = FRONT,
+    // .state = WALK,
+    // .anim = &ANIM_VIKING_WALK_FRONT,
+
+    .frame = 0,
+    .seek = 0.0f,
+};
+
+u8 Animate(AnimationState_t* state, f64 deltaTime) {
+  state->seek += deltaTime;
+  state->seek = Math__mod(state->seek, state->anim->duration);
+  state->frame = Math__map(state->seek, 0.0f, state->anim->duration, 0, state->anim->frameCount);
+  u8 texId = state->anim->frames[state->frame];
+  return texId;
 }
 
 int main() {
@@ -186,14 +264,27 @@ int main() {
   glm_vec3_copy((vec3){0, 0, 1}, world.cam);
   glm_vec3_copy((vec3){0, 0, 0}, world.look);
 
-  instanceCount = 1;
   glm_vec3_copy((vec3){0, 0, 0}, instances[0].pos);
   glm_vec3_copy((vec3){0, 0, 0}, instances[0].rot);
-  glm_vec3_copy((vec3){PixelsToUnits(696), PixelsToUnits(418), 1}, instances[0].scale);
+  glm_vec3_copy((vec3){PixelsToUnits(2632), PixelsToUnits(1721), 1}, instances[0].scale);
   instances[0].texId = 0;
+  instanceCount = 1;
+
+  glm_vec3_copy((vec3){0, 0, 0}, instances[instanceCount].pos);
+  glm_vec3_copy((vec3){0, 0, 0}, instances[instanceCount].rot);
+  glm_vec3_copy((vec3){PixelsToUnits(300), PixelsToUnits(450), 1}, instances[instanceCount].scale);
+  instances[instanceCount].texId = 4;
+  instanceCount++;
 
   // main loop
-  Window__RenderLoop(&s_Window, PHYSICS_FPS, RENDER_FPS, &physicsCallback, &renderCallback);
+  Window__RenderLoop(
+      &s_Window,
+      ANIMATION_FPS,
+      PHYSICS_FPS,
+      RENDER_FPS,
+      &animationCallback,
+      &physicsCallback,
+      &renderCallback);
 
   // cleanup
   printf("shutdown main.\n");
@@ -210,8 +301,19 @@ void physicsCallback(const f64 deltaTime) {
   // OnFixedUpdate(deltaTime);
 }
 
+void animationCallback(const f64 deltaTime) {
+}
+
+static u8 newTexId;
 void renderCallback(const f64 deltaTime) {
   // OnUpdate(deltaTime);
+
+  // character frame animation
+  newTexId = Animate(&playerAnimationState, deltaTime);
+  if (instances[1].texId != newTexId) {
+    instances[1].texId = newTexId;
+    isVBODirty = true;
+  }
 
   if (isVBODirty) {
     isVBODirty = false;
