@@ -82,8 +82,7 @@ uint GLYPH_W = 4;
 uint GLYPH_H = 6;
 
 void main() {
-    //mat4 model = generateModelMatrix(pos, rot, scale);
-    mat4 model = generateModelMatrix(pos, rot, vec3(1,1,1));
+    mat4 model = generateModelMatrix(pos, rot, scale);
     gl_Position = ubo1.proj * ubo1.view * model * vec4(-xy.x, xy.y, 0.0, 1.0);
 
     // hard-coded map of texId to uvwh coords in texture atlas

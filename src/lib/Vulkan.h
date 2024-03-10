@@ -18,6 +18,7 @@
 #define VULKAN_SWAPCHAIN_PRESENT_MODES_CAP 10
 #define VULKAN_SWAPCHAIN_IMAGES_CAP 3
 #define VULKAN_SHADER_FILE_BUFFER_BYTES_CAP 50 * 1024  // KB
+#define VULKAN_VERTEX_BUFFERS_CAP 2
 
 typedef struct {
   bool same;
@@ -84,8 +85,8 @@ typedef struct {
   // pipeline
   VkRenderPass m_renderPass;
   VkDescriptorSetLayout m_descriptorSetLayout;
-  VkBuffer m_vertexBuffers[VULKAN_SWAPCHAIN_IMAGES_CAP];
-  VkDeviceMemory m_vertexBufferMemories[VULKAN_SWAPCHAIN_IMAGES_CAP];
+  VkBuffer m_vertexBuffers[VULKAN_VERTEX_BUFFERS_CAP];
+  VkDeviceMemory m_vertexBufferMemories[VULKAN_VERTEX_BUFFERS_CAP];
   VkPipelineLayout m_pipelineLayout;
   VkPipeline m_graphicsPipeline;
   VkCommandPool m_commandPool;

@@ -175,28 +175,10 @@ int main() {
   glm_vec3_copy((vec3){0, 0, 0}, world.look);
 
   instanceCount = 1;
-  glm_vec3_copy((vec3){PixelsToUnits(200), PixelsToUnits(200), 0}, instances[0].pos);
+  glm_vec3_copy((vec3){0, 0, 0}, instances[0].pos);
   glm_vec3_copy((vec3){0, 0, 0}, instances[0].rot);
-  glm_vec3_copy((vec3){PixelsToUnits(200), PixelsToUnits(200), 1}, instances[0].scale);
+  glm_vec3_copy((vec3){PixelsToUnits(968), PixelsToUnits(526), 1}, instances[0].scale);
   instances[0].texId = 0;
-
-  LOG_DEBUGF(
-      "instances[0] pos %2.5f %2.5f %2.5f",
-      instances[0].pos[0],
-      instances[0].pos[1],
-      instances[0].pos[2])
-
-  LOG_DEBUGF(
-      "instances[0] rot %2.5f %2.5f %2.5f",
-      instances[0].rot[0],
-      instances[0].rot[1],
-      instances[0].rot[2])
-
-  LOG_DEBUGF(
-      "instances[0] scale %2.5f %2.5f %2.5f",
-      instances[0].scale[0],
-      instances[0].scale[1],
-      instances[0].scale[2])
 
   // main loop
   Window__RenderLoop(&s_Window, PHYSICS_FPS, RENDER_FPS, &physicsCallback, &renderCallback);
@@ -223,7 +205,7 @@ void renderCallback(const f64 deltaTime) {
     isVBODirty = false;
 
     s_Vulkan.m_instanceCount = instanceCount;
-    Vulkan__UpdateVertexBuffer(&s_Vulkan, 1, instanceCount, instances);
+    Vulkan__UpdateVertexBuffer(&s_Vulkan, 1, sizeof(instances), instances);
   }
 
   if (isUBODirty[s_Vulkan.m_currentFrame]) {
