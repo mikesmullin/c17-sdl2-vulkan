@@ -19,6 +19,10 @@ static u16 WINDOW_HEIGHT = 800;
 
 static const u8 PHYSICS_FPS = 50;
 static const u8 RENDER_FPS = 60;
+
+static const f32 PLAYER_WALK_SPEED = 1.0f / 3;  // per-second
+static const f32 PLAYER_ZOOM_SPEED = 1.0f / 8;  // per-second
+
 static bool isVBODirty = true;
 static bool isUBODirty[] = {true, true};
 
@@ -363,34 +367,40 @@ static void keyboardCallback() {
 }
 
 static void fingerCallback() {
-  LOG_DEBUGF(
-      "SDL_FINGER state "
-      "event %s "
-      "clicks %u pressure %2.5f finger %u "
-      "x %u y %u x_rel %d y_rel %d wheel_x %2.5f wheel_y %2.5f "
-      "button_l %d button_m %d button_r %d button_x1 %d button_x2 %d ",
-      (g_Finger__state.event == UP       ? "UP"
-       : g_Finger__state.event == DOWN   ? "DOWN"
-       : g_Finger__state.event == MOVE   ? "MOVE"
-       : g_Finger__state.event == SCROLL ? "SCROLL"
-                                         : ""),
-      g_Finger__state.clicks,
-      g_Finger__state.pressure,
-      g_Finger__state.finger,
-      g_Finger__state.x,
-      g_Finger__state.y,
-      g_Finger__state.x_rel,
-      g_Finger__state.y_rel,
-      g_Finger__state.wheel_x,
-      g_Finger__state.wheel_y,
-      g_Finger__state.button_l,
-      g_Finger__state.button_m,
-      g_Finger__state.button_r,
-      g_Finger__state.button_x1,
-      g_Finger__state.button_x2);
-}
+  // LOG_DEBUGF(
+  //     "SDL_FINGER state "
+  //     "event %s "
+  //     "clicks %u pressure %2.5f finger %u "
+  //     "x %u y %u x_rel %d y_rel %d wheel_x %2.5f wheel_y %2.5f "
+  //     "button_l %d button_m %d button_r %d button_x1 %d button_x2 %d ",
+  //     (g_Finger__state.event == FINGER_UP       ? "UP"
+  //      : g_Finger__state.event == FINGER_DOWN   ? "DOWN"
+  //      : g_Finger__state.event == FINGER_MOVE   ? "MOVE"
+  //      : g_Finger__state.event == FINGER_SCROLL ? "SCROLL"
+  //                                        : ""),
+  //     g_Finger__state.clicks,
+  //     g_Finger__state.pressure,
+  //     g_Finger__state.finger,
+  //     g_Finger__state.x,
+  //     g_Finger__state.y,
+  //     g_Finger__state.x_rel,
+  //     g_Finger__state.y_rel,
+  //     g_Finger__state.wheel_x,
+  //     g_Finger__state.wheel_y,
+  //     g_Finger__state.button_l,
+  //     g_Finger__state.button_m,
+  //     g_Finger__state.button_r,
+  //     g_Finger__state.button_x1,
+  //     g_Finger__state.button_x2);
 
-static const f32 PLAYER_WALK_SPEED = 1.0f / 3;  // per-second
+  if (FINGER_SCROLL == g_Finger__state.event) {
+    // TODO: how to animate camera zoom with spring damping/smoothing?
+    // TODO: how to move this into physics callback? or is it better not to?
+    world.cam[2] += -g_Finger__state.wheel_y * PLAYER_ZOOM_SPEED /* deltaTime*/;
+    isUBODirty[0] = true;
+    isUBODirty[1] = true;
+  }
+}
 
 void physicsCallback(const f64 deltaTime) {
   // OnFixedUpdate(deltaTime);
@@ -444,14 +454,14 @@ static void renderCallback(const f64 deltaTime) {
 
     s_Vulkan.m_aspectRatio = world.aspect;  // sync viewport
 
-    // glm_perspective(
-    //     glm_rad(45.0f),  // half the actual 90deg fov
-    //     world.aspect,
-    //     0.1f,  // TODO: adjust clipping range for z depth?
-    //     10.0f,
-    //     ubo1.proj);
+    glm_perspective(
+        glm_rad(45.0f),  // half the actual 90deg fov
+        world.aspect,
+        0.1f,  // TODO: adjust clipping range for z depth?
+        10.0f,
+        ubo1.proj);
 
-    glm_ortho(-0.5f, +0.5f, -0.5f, +0.5f, 0.1f, 10.0f, ubo1.proj);
+    // glm_ortho(-0.5f, +0.5f, -0.5f, +0.5f, 0.1f, 10.0f, ubo1.proj);
     glm_vec2_copy(world.user1, ubo1.user1);
     glm_vec2_copy(world.user2, ubo1.user2);
 

@@ -19,7 +19,7 @@ void Finger__DispatchCallbacks() {
 }
 
 void Finger__OnInput(const SDL_Event* event) {
-  g_Finger__state.event = NONE;
+  g_Finger__state.event = FINGER_NONE;
   g_Finger__state.clicks = 0;
   g_Finger__state.pressure = 0.0f;
   g_Finger__state.finger = 0;
@@ -37,7 +37,7 @@ void Finger__OnInput(const SDL_Event* event) {
 
   switch (event->type) {
     case SDL_MOUSEMOTION:
-      g_Finger__state.event = MOVE;
+      g_Finger__state.event = FINGER_MOVE;
       g_Finger__state.x = event->motion.x;
       g_Finger__state.y = event->motion.y;
       g_Finger__state.x_rel = event->motion.xrel;
@@ -53,7 +53,7 @@ void Finger__OnInput(const SDL_Event* event) {
       break;
 
     case SDL_FINGERMOTION:
-      g_Finger__state.event = MOVE;
+      g_Finger__state.event = FINGER_MOVE;
       g_Finger__state.x = event->tfinger.x;
       g_Finger__state.y = event->tfinger.y;
       g_Finger__state.x_rel = event->tfinger.dx;
@@ -64,7 +64,7 @@ void Finger__OnInput(const SDL_Event* event) {
       break;
 
     case SDL_MOUSEWHEEL:
-      g_Finger__state.event = SCROLL;
+      g_Finger__state.event = FINGER_SCROLL;
       // g_Finger__state.wheel_x = event->wheel.x;
       // g_Finger__state.wheel_y = event->wheel.y;
       g_Finger__state.wheel_x = event->wheel.preciseX;
@@ -75,7 +75,7 @@ void Finger__OnInput(const SDL_Event* event) {
 
     case SDL_MOUSEBUTTONDOWN:
     case SDL_MOUSEBUTTONUP:
-      g_Finger__state.event = SDL_MOUSEBUTTONDOWN == event->type ? DOWN : UP;
+      g_Finger__state.event = SDL_MOUSEBUTTONDOWN == event->type ? FINGER_DOWN : FINGER_UP;
       g_Finger__state.x = event->button.x;
       g_Finger__state.y = event->button.y;
 
@@ -91,7 +91,7 @@ void Finger__OnInput(const SDL_Event* event) {
 
     case SDL_FINGERDOWN:
     case SDL_FINGERUP:
-      g_Finger__state.event = SDL_FINGERDOWN == event->type ? DOWN : UP;
+      g_Finger__state.event = SDL_FINGERDOWN == event->type ? FINGER_DOWN : FINGER_UP;
       g_Finger__state.x = event->tfinger.x;
       g_Finger__state.y = event->tfinger.y;
       g_Finger__state.pressure = event->tfinger.pressure;

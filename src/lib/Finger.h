@@ -7,11 +7,11 @@
 #include "Base.h"
 
 typedef enum {
-  NONE = 0,
-  MOVE = 1,
-  SCROLL = 2,
-  UP = 3,
-  DOWN = 4,
+  FINGER_NONE = 0,
+  FINGER_MOVE = 1,
+  FINGER_SCROLL = 2,
+  FINGER_UP = 3,
+  FINGER_DOWN = 4,
 } FingerEvent;
 
 typedef struct {
