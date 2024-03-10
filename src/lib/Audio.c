@@ -68,12 +68,12 @@ void Audio__Shutdown() {
 
 void Audio__LoadAudioFile(const char* path) {
   ASSERT_CONTEXT(
-      s_AudioSourcesSize >= MAX_AUDIO_SOURCES,
+      s_AudioSourcesSize <= MAX_AUDIO_SOURCES,
       "Failed to load audio file %s. Raise MAX_AUDIO_SOURCES.",
       path)
 
   cm_Source* src = cm_new_source_from_file(path);
-  ASSERT_CONTEXT(!src, "Failed to load audio file %s", cm_get_error())
+  ASSERT_CONTEXT(src, "Failed to load audio file %s", cm_get_error())
 
   s_AudioSources[s_AudioSourcesSize] = src;
   LOG_INFOF("Audio file loaded. idx: %u, path: %s", s_AudioSourcesSize, path);

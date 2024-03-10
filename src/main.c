@@ -75,6 +75,10 @@ static const char* textureFiles[] = {
     "../assets/textures/roguelikeSheet_transparent.png",
 };
 
+static const char* audioFiles[] = {
+    "../assets/audio/music/grassland.wav",
+};
+
 static ubo_ProjView_t ubo1;  // projection x view matrices
 
 static void physicsCallback(const f64 deltaTime);
@@ -99,6 +103,9 @@ int main() {
   Window__New(&s_Window, WINDOW_TITLE, WINDOW_WIDTH, WINDOW_HEIGHT, &s_Vulkan);
   SDL__Init();
   Audio__Init();
+
+  Audio__LoadAudioFile(audioFiles[0]);
+  Audio__PlayAudio(0, true, 1.0f);
 
   Gamepad_t gamePad1;
   Gamepad__New(&gamePad1, 0);
