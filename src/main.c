@@ -328,6 +328,10 @@ static void keyboardCallback() {
   //     g_Keyboard__state.shiftKey,
   //     g_Keyboard__state.metaKey);
 
+  if (41 == g_Keyboard__state.code) {  // ESC
+    s_Window.quit = true;
+  }
+
   // character locomotion controls
   if (119 == g_Keyboard__state.location) {  // W
     playerAnimationState.facing = BACK;
