@@ -1,10 +1,10 @@
 #include <cglm/cglm.h>
 #include <stdio.h>
-#include <time.h>
 
 #include "lib/Audio.h"
 #include "lib/Gamepad.h"
 #include "lib/SDL.h"
+#include "lib/Timer.h"
 #include "lib/Vulkan.h"
 #include "lib/Window.h"
 
@@ -16,7 +16,7 @@ static u16 WINDOW_HEIGHT = 800;
 static const u8 PHYSICS_FPS = 50;
 static const u8 RENDER_FPS = 60;
 static bool isVBODirty = true;
-static bool isUBODirty = true;
+static bool isUBODirty[] = {true, true};
 
 static Vulkan_t s_Vulkan;
 static Window_t s_Window;
@@ -33,6 +33,7 @@ typedef struct {
 } Instance_t;
 
 #define MAX_INSTANCES 255  // TODO: find out how to exceed this limit
+u16 instanceCount = 0;
 Instance_t instances[MAX_INSTANCES];
 
 typedef struct {
@@ -43,10 +44,7 @@ typedef struct {
   f32 aspect;
 } World_t;
 
-World_t world = {
-    {0.0f, 1.0f, 2.0f},
-    {0.0f, 0.0f, 0.0f},
-};
+World_t world;
 
 vec3 VEC3_Y_UP = {0, 1, 0};
 
@@ -79,14 +77,16 @@ const char* textureFiles[] = {
 
 ubo_ProjView_t ubo1;  // projection x view matrices
 
-static void physicsCallback(const f32 deltaTime);
-static void renderCallback(const f32 deltaTime);
+static void physicsCallback(const f64 deltaTime);
+static void renderCallback(const f64 deltaTime);
 
 int main() {
   printf("begin main.\n");
 
+  Timer__MeasureCycles();
+
   // initialize random seed using current time
-  srand(time(NULL));
+  srand(Timer__NowMilliseconds());
 
   Vulkan__InitDriver1(&s_Vulkan);
 
@@ -162,7 +162,18 @@ int main() {
   Vulkan__CreateDescriptorSets(&s_Vulkan);
   Vulkan__CreateCommandBuffers(&s_Vulkan);
   Vulkan__CreateSyncObjects(&s_Vulkan);
-  u32 drawIndexCount = ARRAY_COUNT(indices);
+  s_Vulkan.m_drawIndexCount = ARRAY_COUNT(indices);
+
+  // setup scene
+  world.aspect = ASPECT_SQUARE;
+  glm_vec3_copy((vec3){0, 0, 1}, world.cam);
+  glm_vec3_copy((vec3){0, 0, 0}, world.look);
+
+  instanceCount = 1;
+  glm_vec3_copy((vec3){0, 0, 0}, instances[0].pos);
+  glm_vec3_copy((vec3){0, 0, 0}, instances[0].rot);
+  glm_vec3_copy((vec3){1, 1, 1}, instances[0].scale);
+  instances[0].texId = 0;
 
   // main loop
   Window__RenderLoop(&s_Window, PHYSICS_FPS, RENDER_FPS, &physicsCallback, &renderCallback);
@@ -178,27 +189,29 @@ int main() {
   return 0;
 }
 
-void physicsCallback(const f32 deltaTime) {
+void physicsCallback(const f64 deltaTime) {
   // OnFixedUpdate(deltaTime);
 }
 
-void renderCallback(const f32 deltaTime) {
+void renderCallback(const f64 deltaTime) {
   // OnUpdate(deltaTime);
 
   if (isVBODirty) {
     isVBODirty = false;
-    s_Vulkan.m_instanceCount = ARRAY_COUNT(instances);
-    Vulkan__UpdateVertexBuffer(&s_Vulkan, 1, sizeof(instances), instances);
+
+    s_Vulkan.m_instanceCount = instanceCount;
+    Vulkan__UpdateVertexBuffer(&s_Vulkan, 1, instanceCount, instances);
   }
 
-  if (isUBODirty) {
-    isUBODirty = false;
+  if (isUBODirty[s_Vulkan.m_currentFrame]) {
+    isUBODirty[s_Vulkan.m_currentFrame] = false;
 
     glm_lookat(
         world.cam,
         world.look,
         VEC3_Y_UP,  // Y-axis points upwards (GLM default)
         ubo1.view);
+
     s_Vulkan.m_aspectRatio = world.aspect;  // sync viewport
     // glm_perspective(
     //     glm_rad(45.0f),  // half the actual 90deg fov

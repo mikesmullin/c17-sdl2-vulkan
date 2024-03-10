@@ -18,6 +18,8 @@ void logit(const char* line, ...) {
   va_list myargs;
   va_start(myargs, line);
   vfprintf(fh, line, myargs);
-  va_end(myargs);
   fclose(fh);
+
+  vfprintf(stdout, line, myargs);
+  va_end(myargs);
 }

@@ -639,7 +639,7 @@ void Vulkan__CreateSwapChain(Vulkan_t* self, bool hadPriorSwapChain) {
 
   LOG_INFOF(
       "swap chain %screated. width %u height %u imageCount %u",
-      (hadPriorSwapChain ? "" : "re"),
+      (hadPriorSwapChain ? "re" : ""),
       extent.width,
       extent.height,
       receivedImageCount);
@@ -734,31 +734,27 @@ void Vulkan__CreateRenderPass(Vulkan_t* self) {
 }
 
 void Vulkan__CreateDescriptorSetLayout(Vulkan_t* self) {
-  VkDescriptorSetLayoutBinding uboLayoutBinding;
-  uboLayoutBinding.binding = 0;
-  uboLayoutBinding.descriptorCount = 1;
-  uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  uboLayoutBinding.pImmutableSamplers = NULL;
-  uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-  VkDescriptorSetLayoutBinding samplerLayoutBinding;
-  samplerLayoutBinding.binding = 1;
-  samplerLayoutBinding.descriptorCount = 1;
-  samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-  samplerLayoutBinding.pImmutableSamplers = NULL;
-  samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-  u32 bindingsCount = 2;
-  VkDescriptorSetLayoutBinding bindings[bindingsCount];
-  bindings[0] = uboLayoutBinding;
-  bindings[1] = samplerLayoutBinding;
-
   VkDescriptorSetLayoutCreateInfo layoutInfo;
   layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
   layoutInfo.pNext = NULL;
   layoutInfo.flags = 0;
-  layoutInfo.bindingCount = bindingsCount;
-  layoutInfo.pBindings = bindings;
+  layoutInfo.bindingCount = 2;
+  layoutInfo.pBindings = (VkDescriptorSetLayoutBinding[]){
+      {
+          .binding = 0,
+          .descriptorCount = 1,
+          .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+          .pImmutableSamplers = NULL,
+          .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+      },
+      {
+          .binding = 1,
+          .descriptorCount = 1,
+          .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+          .pImmutableSamplers = NULL,
+          .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+      },
+  };
 
   ASSERT(
       VK_SUCCESS == vkCreateDescriptorSetLayout(
@@ -772,6 +768,8 @@ void Vulkan__CreateShaderModule(
     Vulkan_t* self, const u64 size, const char* code, VkShaderModule* shaderModule) {
   VkShaderModuleCreateInfo createInfo;
   createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+  createInfo.pNext = NULL;
+  createInfo.flags = 0;
   createInfo.codeSize = size;
   createInfo.pCode = (u32*)code;
   ASSERT(VK_SUCCESS == vkCreateShaderModule(self->m_logicalDevice, &createInfo, NULL, shaderModule))
@@ -801,26 +799,34 @@ void Vulkan__CreateGraphicsPipeline(
   Vulkan__CreateShaderModule(self, len1, shader1, &fragShaderModule);
   Vulkan__CreateShaderModule(self, len2, shader2, &vertShaderModule);
 
-  VkPipelineShaderStageCreateInfo vertShaderStageInfo;
-  vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-  vertShaderStageInfo.module = vertShaderModule;
-  vertShaderStageInfo.pName = "main";
-  // TODO: provide constants at shader stage init via .pSpecializationInfo
+  VkPipelineShaderStageCreateInfo shaderStages[] = {
+      {
+          .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+          .pNext = NULL,
+          .flags = 0,
+          .stage = VK_SHADER_STAGE_VERTEX_BIT,
+          .module = vertShaderModule,
+          .pName = "main",
+          // TODO: provide constants at shader stage init via .pSpecializationInfo
 
-  VkPipelineShaderStageCreateInfo fragShaderStageInfo;
-  fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-  fragShaderStageInfo.module = fragShaderModule;
-  fragShaderStageInfo.pName = "main";
-
-  VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+      },
+      {
+          .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+          .pNext = NULL,
+          .flags = 0,
+          .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
+          .module = fragShaderModule,
+          .pName = "main",
+      },
+  };
 
   // utilize dynamic viewport and scissor state, so resize can be specified at draw time
   u32 dynamicStatesCount = 2;
   VkDynamicState dynamicStates[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
   VkPipelineDynamicStateCreateInfo dynamicState;
   dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+  dynamicState.pNext = NULL;
+  dynamicState.flags = 0;
   dynamicState.dynamicStateCount = dynamicStatesCount;
   dynamicState.pDynamicStates = dynamicStates;
 
@@ -854,6 +860,8 @@ void Vulkan__CreateGraphicsPipeline(
 
   VkPipelineVertexInputStateCreateInfo vertexInputInfo;
   vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+  vertexInputInfo.pNext = NULL;
+  vertexInputInfo.flags = 0;
   vertexInputInfo.vertexBindingDescriptionCount = bindingDescriptionsCount;
   vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions;
   vertexInputInfo.vertexAttributeDescriptionCount = attrCount;
@@ -863,17 +871,23 @@ void Vulkan__CreateGraphicsPipeline(
   // if primitive restart should be enabled.
   VkPipelineInputAssemblyStateCreateInfo inputAssembly;
   inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+  inputAssembly.pNext = NULL;
+  inputAssembly.flags = 0;
   inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
   inputAssembly.primitiveRestartEnable = VK_FALSE;
 
   VkPipelineViewportStateCreateInfo viewportState;
   viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+  viewportState.pNext = NULL;
+  viewportState.flags = 0;
   viewportState.viewportCount = 1;
   viewportState.scissorCount = 1;
 
   // Rasterizer
   VkPipelineRasterizationStateCreateInfo rasterizer;
   rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+  rasterizer.pNext = NULL;
+  rasterizer.flags = 0;
   rasterizer.depthClampEnable = VK_FALSE;
   rasterizer.rasterizerDiscardEnable = VK_FALSE;
   rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
@@ -889,6 +903,8 @@ void Vulkan__CreateGraphicsPipeline(
 
   VkPipelineMultisampleStateCreateInfo multisampling;
   multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+  multisampling.pNext = NULL;
+  multisampling.flags = 0;
   multisampling.sampleShadingEnable = VK_FALSE;
   multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
   multisampling.minSampleShading = 1.0f;
@@ -911,6 +927,8 @@ void Vulkan__CreateGraphicsPipeline(
 
   VkPipelineColorBlendStateCreateInfo colorBlending;
   colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+  colorBlending.pNext = NULL;
+  colorBlending.flags = 0;
   colorBlending.logicOpEnable = VK_FALSE;
   colorBlending.logicOp = VK_LOGIC_OP_COPY;
   colorBlending.attachmentCount = 1;
@@ -922,6 +940,8 @@ void Vulkan__CreateGraphicsPipeline(
 
   VkPipelineLayoutCreateInfo pipelineLayoutInfo;
   pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+  pipelineLayoutInfo.pNext = NULL;
+  pipelineLayoutInfo.flags = 0;
   pipelineLayoutInfo.setLayoutCount = 1;
   pipelineLayoutInfo.pSetLayouts = &self->m_descriptorSetLayout;
 
@@ -934,6 +954,8 @@ void Vulkan__CreateGraphicsPipeline(
 
   VkGraphicsPipelineCreateInfo pipelineInfo;
   pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+  pipelineInfo.pNext = NULL;
+  pipelineInfo.flags = 0;
   pipelineInfo.stageCount = 2;
   pipelineInfo.pStages = shaderStages;
   pipelineInfo.pVertexInputState = &vertexInputInfo;
@@ -1061,8 +1083,8 @@ void Vulkan__CreateImage(
     VkDeviceMemory* imageMemory) {
   VkImageCreateInfo imageInfo;
   imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-  imageInfo.flags = 0;
   imageInfo.pNext = NULL;
+  imageInfo.flags = 0;
   imageInfo.imageType = VK_IMAGE_TYPE_2D;
   imageInfo.extent.width = width;
   imageInfo.extent.height = height;
@@ -1147,6 +1169,7 @@ void Vulkan__TransitionImageLayout(
 
   VkImageMemoryBarrier barrier[] = {{
       .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+      .pNext = NULL,
       .oldLayout = oldLayout,
       .newLayout = newLayout,
       .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
@@ -1657,6 +1680,7 @@ void Vulkan__AwaitNextFrame(Vulkan_t* self) {
 void Vulkan__RecordCommandBuffer(Vulkan_t* self, VkCommandBuffer* commandBuffer, u32 imageIndex) {
   VkCommandBufferBeginInfo beginInfo;
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  beginInfo.pNext = NULL;
   beginInfo.flags = 0;
   beginInfo.pInheritanceInfo = NULL;
 
@@ -1773,9 +1797,12 @@ void Vulkan__DrawFrame(Vulkan_t* self) {
   }
 
   VkResult result2 = vkQueuePresentKHR(queue, &presentInfo);
-  if (result2 == VK_ERROR_OUT_OF_DATE_KHR || result2 == VK_SUBOPTIMAL_KHR ||
-      self->m_framebufferResized) {
+  if (self->m_framebufferResized) {
     self->m_framebufferResized = false;
+    Vulkan__RecreateSwapChain(self);
+  } else if (result2 == VK_ERROR_OUT_OF_DATE_KHR) {
+    Vulkan__RecreateSwapChain(self);
+  } else if (result2 == VK_SUBOPTIMAL_KHR) {
     Vulkan__RecreateSwapChain(self);
   } else if (result2 != VK_SUCCESS) {
     ASSERT_CONTEXT(

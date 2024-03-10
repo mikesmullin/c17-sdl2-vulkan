@@ -29,7 +29,7 @@ void Window__RenderLoop(
     Window_t* self,
     const int physicsFps,
     const int renderFps,
-    void (*physicsCallback)(const float),
-    void (*renderCallback)(const float));
+    void (*physicsCallback)(const f64),
+    void (*renderCallback)(const f64));
 
 #endif
