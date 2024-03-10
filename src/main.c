@@ -33,8 +33,8 @@ typedef struct {
 } Instance_t;
 
 #define MAX_INSTANCES 255  // TODO: find out how to exceed this limit
-u16 instanceCount = 0;
-Instance_t instances[MAX_INSTANCES];
+static u16 instanceCount = 1;
+static Instance_t instances[MAX_INSTANCES];
 
 typedef struct {
   vec3 cam;
@@ -44,9 +44,9 @@ typedef struct {
   f32 aspect;
 } World_t;
 
-World_t world;
+static World_t world;
 
-vec3 VEC3_Y_UP = {0, 1, 0};
+static vec3 VEC3_Y_UP = {0, 1, 0};
 
 typedef struct {
   mat4 proj;
@@ -55,30 +55,35 @@ typedef struct {
   vec2 user2;
 } ubo_ProjView_t;
 
-Mesh_t vertices[] = {
+static Mesh_t vertices[] = {
     {{-0.5f, -0.5f}},
     {{0.5f, -0.5f}},
     {{0.5f, 0.5f}},
     {{-0.5f, 0.5f}},
 };
 
-// TODO: could use u8 here probably?
-u16 indices[] = {0, 1, 2, 2, 3, 0};
+static u16 indices[] = {0, 1, 2, 2, 3, 0};
 
-const char* shaderFiles[] = {
+static const char* shaderFiles[] = {
     "../assets/shaders/simple_shader.frag.spv",
     "../assets/shaders/simple_shader.vert.spv",
 };
 
-const char* textureFiles[] = {
+static const char* textureFiles[] = {
     "../assets/textures/roguelikeSheet_transparent.png",
     "../assets/textures/wood-wall.png",
 };
 
-ubo_ProjView_t ubo1;  // projection x view matrices
+static ubo_ProjView_t ubo1;  // projection x view matrices
 
 static void physicsCallback(const f64 deltaTime);
 static void renderCallback(const f64 deltaTime);
+
+static const u16 BACKGROUND_WH = 800;
+static const u16 PIXELS_PER_UNIT = BACKGROUND_WH;
+static f32 PixelsToUnits(u32 pixels) {
+  return (f32)pixels / PIXELS_PER_UNIT;
+}
 
 int main() {
   printf("begin main.\n");
@@ -170,10 +175,28 @@ int main() {
   glm_vec3_copy((vec3){0, 0, 0}, world.look);
 
   instanceCount = 1;
-  glm_vec3_copy((vec3){0, 0, 0}, instances[0].pos);
+  glm_vec3_copy((vec3){PixelsToUnits(200), PixelsToUnits(200), 0}, instances[0].pos);
   glm_vec3_copy((vec3){0, 0, 0}, instances[0].rot);
-  glm_vec3_copy((vec3){1, 1, 1}, instances[0].scale);
+  glm_vec3_copy((vec3){PixelsToUnits(200), PixelsToUnits(200), 1}, instances[0].scale);
   instances[0].texId = 0;
+
+  LOG_DEBUGF(
+      "instances[0] pos %2.5f %2.5f %2.5f",
+      instances[0].pos[0],
+      instances[0].pos[1],
+      instances[0].pos[2])
+
+  LOG_DEBUGF(
+      "instances[0] rot %2.5f %2.5f %2.5f",
+      instances[0].rot[0],
+      instances[0].rot[1],
+      instances[0].rot[2])
+
+  LOG_DEBUGF(
+      "instances[0] scale %2.5f %2.5f %2.5f",
+      instances[0].scale[0],
+      instances[0].scale[1],
+      instances[0].scale[2])
 
   // main loop
   Window__RenderLoop(&s_Window, PHYSICS_FPS, RENDER_FPS, &physicsCallback, &renderCallback);
@@ -220,8 +243,15 @@ void renderCallback(const f64 deltaTime) {
     //     10.0f,
     //     ubo1.proj);
     glm_ortho(-0.5f, +0.5f, -0.5f, +0.5f, 0.1f, 10.0f, ubo1.proj);
+
+    ubo1.proj[2][2] = -0.10101;
+    ubo1.proj[3][2] = -0.01010;
     glm_vec2_copy(world.user1, ubo1.user1);
+
+    world.user2[0] = 1.0f;
+    world.user2[1] = 1.0f;
     glm_vec2_copy(world.user2, ubo1.user2);
+
     // TODO: not sure i make use of one UBO per frame, really
     Vulkan__UpdateUniformBuffer(&s_Vulkan, s_Vulkan.m_currentFrame, &ubo1);
   }

@@ -65,7 +65,10 @@ mat4 generateModelMatrix(vec3 position, vec3 rotation, vec3 scale) {
     return modelMatrix;
 }
 
-vec2 TEXTURE_WH = vec2(800,900);
+uint TEX1_W = 968;
+uint TEX1_H = 526;
+
+vec2 TEXTURE_WH = vec2(TEX1_W,TEX1_H);
 float pixelsToUnitsX(uint pixels) {
     return pixels / TEXTURE_WH.x;
 }
@@ -79,20 +82,44 @@ uint GLYPH_W = 4;
 uint GLYPH_H = 6;
 
 void main() {
-    if (xy.x == 0.5 && xy.y == -0.5) { // top-left
-        gl_Position = vec4(0.0-0.5, 0.0-0.5, 1.0, 1.0);
-        fragTexCoord = vec2(0.0, 0.0);
+    //mat4 model = generateModelMatrix(pos, rot, scale);
+    mat4 model = generateModelMatrix(pos, rot, vec3(1,1,1));
+    gl_Position = ubo1.proj * ubo1.view * model * vec4(-xy.x, xy.y, 0.0, 1.0);
+
+    // hard-coded map of texId to uvwh coords in texture atlas
+    vec4 uvwh;
+    if (0 == texId) { // background 0x0
+        uvwh = vec4(pixelsToUnitsX(0),pixelsToUnitsY(0),pixelsToUnitsX(TEX1_W),pixelsToUnitsY(TEX1_H));
     }
-    else if (xy.x == -0.5 && xy.y == -0.5) { // top-right
-        gl_Position = vec4(1.0-0.5, 0.0-0.5, 1.0, 1.0);
-        fragTexCoord = vec2(1.0, 0.0);
+    else if (1 == texId) { // paddle 0x815 170x45
+        uvwh = vec4(pixelsToUnitsX(0),pixelsToUnitsY(815),pixelsToUnitsX(170),pixelsToUnitsY(45));
     }
-    else if (xy.x == -0.5 && xy.y == 0.5) { // bottom-right
-        gl_Position = vec4(1.0-0.5, 1.0-0.5, 1.0, 1.0);
-        fragTexCoord = vec2(1.0, 1.0);
+    else if (2 == texId) { // ball 190x815 45x45
+        uvwh = vec4(pixelsToUnitsX(190),pixelsToUnitsY(815),pixelsToUnitsX(45),pixelsToUnitsY(45));
     }
-    else if (xy.x == 0.5 && xy.y == 0.5) { // bottom-left
-        gl_Position = vec4(0.0-0.5, 1.0-0.5, 1.0, 1.0);
-        fragTexCoord = vec2(0.0, 1.0);
+
+    // pixel font glyphs 260x822 4x6
+    else if (texId > 31 && texId < 128) {
+        uint x = (texId - 32);
+        uint y = (x / 32) - 1;
+        x = x % 32;
+        uvwh = vec4(
+            pixelsToUnitsX(GLYPH_X + (GLYPH_W * x)),
+            pixelsToUnitsY(GLYPH_Y + (GLYPH_H * y)),
+            pixelsToUnitsX(GLYPH_W),
+            pixelsToUnitsY(GLYPH_H));
+    }
+
+    if (xy.x == 0.5 && xy.y == -0.5) {
+        fragTexCoord = vec2(uvwh.x, uvwh.y); // top-left
+    }
+    else if (xy.x == -0.5 && xy.y == -0.5) {
+        fragTexCoord = vec2(uvwh.x+uvwh.z, uvwh.y); // top-right
+    }
+    else if (xy.x == -0.5 && xy.y == 0.5) {
+        fragTexCoord = vec2(uvwh.x+uvwh.z, uvwh.y+uvwh.w); // bottom-right
+    }
+    else if (xy.x == 0.5 && xy.y == 0.5) {
+        fragTexCoord = vec2(uvwh.x, uvwh.y+uvwh.w); // bottom-left
     }
 }
