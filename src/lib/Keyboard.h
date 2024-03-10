@@ -14,9 +14,9 @@ typedef struct {
   bool metaKey;
   u8 code;
   u8 location;
-} KeyboardState;
+} KeyboardState_t;
 
-extern KeyboardState g_Keyboard__state;
+extern KeyboardState_t g_Keyboard__state;
 
 void Keyboard__OnInput(const SDL_Event* event);
 void Keyboard__RegisterCallback(void(*cb));

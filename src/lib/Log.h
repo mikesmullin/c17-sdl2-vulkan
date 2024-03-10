@@ -3,4 +3,4 @@
 
 void logit(const char* line, ...);
 
-#endif
+#endif  // LOG_H

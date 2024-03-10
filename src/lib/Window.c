@@ -5,6 +5,7 @@
 #include <stdio.h>
 
 #include "Base.h"
+#include "Finger.h"
 #include "Gamepad.h"
 #include "Keyboard.h"
 #include "Timer.h"
@@ -151,6 +152,7 @@ void Window__RenderLoop(
 
       Gamepad__OnInput(&e);
       Keyboard__OnInput(&e);
+      Finger__OnInput(&e);
 
       // SDL_UpdateWindowSurface(window);
     }

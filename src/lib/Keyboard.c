@@ -1,6 +1,6 @@
 #include "Keyboard.h"
 
-KeyboardState g_Keyboard__state = {
+KeyboardState_t g_Keyboard__state = {
     .pressed = false,
     .altKey = false,
     .ctrlKey = false,
