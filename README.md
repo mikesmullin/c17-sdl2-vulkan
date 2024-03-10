@@ -17,6 +17,13 @@ My intent for this work is:
 - **Node.js** (for build scripts)
 - **Clang** (recommended compiler)
 
+## Screenshot
+![screenshot](docs/imgs/screenshot1.png)
+
+## Video
+[![video](docs/video/2024-03-10_Survival.gif)](docs/video/2024-03-10_Survival.mp4)
+
+
 ## Building
 
 ### on Windows
