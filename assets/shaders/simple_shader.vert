@@ -81,14 +81,18 @@ uint GLYPH_H = 6;
 void main() {
     if (xy.x == 0.5 && xy.y == -0.5) { // top-left
         gl_Position = vec4(0.0-0.5, 0.0-0.5, 1.0, 1.0);
+        fragTexCoord = vec2(0.0, 0.0);
     }
     else if (xy.x == -0.5 && xy.y == -0.5) { // top-right
         gl_Position = vec4(1.0-0.5, 0.0-0.5, 1.0, 1.0);
+        fragTexCoord = vec2(1.0, 0.0);
     }
     else if (xy.x == -0.5 && xy.y == 0.5) { // bottom-right
         gl_Position = vec4(1.0-0.5, 1.0-0.5, 1.0, 1.0);
+        fragTexCoord = vec2(1.0, 1.0);
     }
     else if (xy.x == 0.5 && xy.y == 0.5) { // bottom-left
         gl_Position = vec4(0.0-0.5, 1.0-0.5, 1.0, 1.0);
+        fragTexCoord = vec2(0.0, 1.0);
     }
 }
