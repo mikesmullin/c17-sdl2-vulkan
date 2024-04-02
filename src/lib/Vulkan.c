@@ -1119,16 +1119,17 @@ void Vulkan__BeginSingleTimeCommands(Vulkan_t* self, VkCommandBuffer* commandBuf
   VkCommandBufferAllocateInfo allocInfo;
   allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
   allocInfo.pNext = NULL;
-  allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   allocInfo.commandPool = self->m_commandPool;
+  allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   allocInfo.commandBufferCount = 1;
 
-  vkAllocateCommandBuffers(self->m_logicalDevice, &allocInfo, commandBuffer);
+  ASSERT(VK_SUCCESS == vkAllocateCommandBuffers(self->m_logicalDevice, &allocInfo, commandBuffer));
 
   VkCommandBufferBeginInfo beginInfo;
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
   beginInfo.pNext = NULL;
   beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+  beginInfo.pInheritanceInfo = NULL;
 
   ASSERT(VK_SUCCESS == vkBeginCommandBuffer(*commandBuffer, &beginInfo))
 }
