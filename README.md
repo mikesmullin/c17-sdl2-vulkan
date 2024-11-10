@@ -10,6 +10,11 @@ My intent for this work is:
 - to realize my desire to create, self-actualize, and contribute back to the industry that I love
 - to help others do the same
 
+my related Game prototypes: 
+[5](https://github.com/mikesmullin/cpp20-win11-x64-sdl2-vulkan?tab=readme-ov-file)
+[7](https://github.com/mikesmullin/game7)
+[8](https://github.com/mikesmullin/game8)
+
 ## Prerequisites
 - **GPU** supporting Vulkan
 - Recent version of **Windows**, Mac, or Linux OS in 64-bit architecture
